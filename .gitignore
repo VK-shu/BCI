@@ -1,0 +1,13 @@
+# Python / uv environment
+.venv/
+__pycache__/
+*.pyc
+
+# Large binary from the course (82 MB, not our code)
+115-1_brainlink.exe
+
+# Fake test data (only for testing the pipeline)
+fake_dataset/
+
+# Real recordings contain student IDs; remove this line if you want to publish them
+bci_dataset_115-1/

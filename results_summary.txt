@@ -1,0 +1,37 @@
+==================================================
+Summary of Classification Results (LOSO):
+ - MLP         : 1.000 +/- 0.000
+ - SVM         : 1.000 +/- 0.000
+ - RF          : 1.000 +/- 0.000
+ - SelfSelected: 1.000 +/- 0.000
+
+Best Performing Model: MLP with Accuracy 1.000
+  -> reached the 75% target
+
+Accuracy per held-out subject:
+Subject                    MLP           SVM            RF  SelfSelected
+b00000001                1.000         1.000         1.000         1.000
+b00000002                1.000         1.000         1.000         1.000
+b00000003                1.000         1.000         1.000         1.000
+
+Detailed Class Report for Best Model [MLP]:
+[Relax Class]
+  - Accuracy (Recall): 1.000 (240/240)
+  - Precision: 1.000 (240/240)
+  - F1-score: 1.000
+
+[Focus Class]
+  - Accuracy (Recall): 1.000 (240/240)
+  - Precision: 1.000 (240/240)
+  - F1-score: 1.000
+
+[Stroop Class]
+  - Accuracy (Recall): 1.000 (240/240)
+  - Precision: 1.000 (240/240)
+  - F1-score: 1.000
+
+Overall Confusion Matrix [MLP] (rows = true, cols = predicted):
+               Relax     Focus    Stroop
+Relax            240         0         0
+Focus              0       240         0
+Stroop             0         0       240
