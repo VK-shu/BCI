@@ -1,5 +1,5 @@
 Configuration                   #feat             MLP             SVM              RF    SelfSelected            Best
-Raw time-domain samples          2560    0.494+/-0.013    0.475+/-0.030    0.460+/-0.050    0.376+/-0.007       MLP 0.494
-+ Filtering (raw samples)        2560    0.521+/-0.077    0.490+/-0.036    0.482+/-0.058    0.392+/-0.017       MLP 0.521
-+ Frequency features               16    0.997+/-0.004    0.997+/-0.004    1.000+/-0.000    1.000+/-0.000        RF 1.000
-+ Time features (final)            21    1.000+/-0.000    1.000+/-0.000    1.000+/-0.000    1.000+/-0.000       MLP 1.000
+Raw time-domain samples          1536    0.389+/-0.012    0.384+/-0.020    0.336+/-0.010    0.312+/-0.007       MLP 0.389
++ Filtering (raw samples)        1536    0.358+/-0.029    0.365+/-0.021    0.335+/-0.028    0.309+/-0.018       SVM 0.365
++ Frequency features               16    0.428+/-0.069    0.421+/-0.096    0.425+/-0.095    0.516+/-0.079SelfSelected 0.516
++ Time features (final)            21    0.457+/-0.128    0.413+/-0.094    0.425+/-0.093    0.476+/-0.092SelfSelected 0.476

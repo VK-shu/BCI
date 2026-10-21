@@ -48,28 +48,29 @@ class Config:
 
     # MLP parameters
     HIDDEN_LAYERS = (128, 64, 32)  # hhhy
-    MAX_ITER = 150                 # hhhy
-    LEARNING_RATE = 0.002          # hhhy
+    MAX_ITER = 200                 # hhhy
+    LEARNING_RATE = 0.0025         # hhhy
     ALPHA = 0.005                  # hhhy
 
     # SVM parameters
     SVM_KERNEL = 'rbf'   # hhhy
-    SVM_C = 1.0          # hhhy
+    SVM_C = 1.2          # hhhy
     SVM_GAMMA = 'scale'  # hhhy
 
     # Random Forest parameters
-    RF_ESTIMATORS = 100  # hhhy
+    RF_ESTIMATORS = 200  # hhhy
     RF_MAX_DEPTH = None  # hhhy
 
     # Signal processing parameters
     SAMPLING_RATE = 512    # BrainLink fixed sampling rate
-    SEGMENT_LENGTH = 5     # Segment length in seconds      # hhhy
-    OVERLAP_RATIO = 0.6    # Overlap ratio for segments     # hhhy
+    SEGMENT_LENGTH = 7     # Segment length in seconds      # hhhy
+    OVERLAP_RATIO = 0.7    # Overlap ratio for segments     # hhhy
+    TRIM_SECONDS = 1.0     # seconds cut from BOTH ends of every recording (task-switch transients)  # hhhy
 
     # Preprocessing parameters (student)
     BANDPASS = (1.0, 45.0)     # Hz, band-pass range   # hhhy
     NOTCH_FREQ = 60.0          # Hz, mains frequency in Taiwan
-    ARTIFACT_THRESHOLD = None  # e.g. 300: drop a segment if |filtered amplitude| exceeds it; None = keep all  # hhhy
+    ARTIFACT_THRESHOLD = None   # drop a segment if max|filtered amplitude| exceeds this (e.g. blink/EMG burst); None = keep all  # hhhy
 
     # Ablation switches (student): used by ablation.py to build Table 3 of the report.
     # Keep all three True for the final pipeline.
@@ -86,7 +87,7 @@ class Config:
 
     # Feature selection parameters
     FEATURE_SELECTION = True  # hhhy
-    N_FEATURES_SELECT = 20    # hhhy
+    N_FEATURES_SELECT = 15    # hhhy
 
     # Reporting settings
     TARGET_ACCURACY = 0.75   # required level
@@ -152,6 +153,13 @@ def create_segments(data, segment_length_samples, overlap_samples):
         # ==========================================
         # === STUDENT PREPROCESSING HERE (Part 1)===
         # ==========================================
+        # Skip segments that touch the first/last TRIM_SECONDS of the recording
+        # (transients left over from the previous task / the task switch).
+        trim = int(Config.TRIM_SECONDS * Config.SAMPLING_RATE)
+        if start < trim or start + segment_length_samples > len(data) - trim:
+            start += step
+            continue
+
         if Config.USE_FILTERING:
             segment = preprocess_segment(segment)
         if (Config.ARTIFACT_THRESHOLD is not None
