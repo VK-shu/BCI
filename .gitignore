@@ -10,4 +10,4 @@ __pycache__/
 fake_dataset/
 
 # Real recordings contain student IDs; remove this line if you want to publish them
-bci_dataset_115-1/
+
