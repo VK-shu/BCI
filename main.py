@@ -20,7 +20,7 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 # === STUDENT MODEL IMPORT HERE ===
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis  # self-selected model: shrinkage LDA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from scipy.signal import butter, iirnotch, sosfiltfilt, filtfilt, welch
 from scipy.stats import kurtosis
 # =================================
@@ -48,46 +48,47 @@ class Config:
 
     # MLP parameters
     HIDDEN_LAYERS = (128, 64, 32)  # hhhy
-    MAX_ITER = 200                 # hhhy
+    MAX_ITER = 150                 # hhhy
     LEARNING_RATE = 0.0025         # hhhy
     ALPHA = 0.005                  # hhhy
 
     # SVM parameters
     SVM_KERNEL = 'rbf'   # hhhy
-    SVM_C = 1.2          # hhhy
-    SVM_GAMMA = 'scale'  # hhhy
+    SVM_C = 1.0          # hhhy
+    # gamma is left at the scikit-learn default ('scale'); the SVC constructor is not edited
 
     # Random Forest parameters
-    RF_ESTIMATORS = 200  # hhhy
+    RF_ESTIMATORS = 100  # hhhy
     RF_MAX_DEPTH = None  # hhhy
 
     # Signal processing parameters
     SAMPLING_RATE = 512    # BrainLink fixed sampling rate
-    SEGMENT_LENGTH = 7     # Segment length in seconds      # hhhy
-    OVERLAP_RATIO = 0.7    # Overlap ratio for segments     # hhhy
-    TRIM_SECONDS = 1.0     # seconds cut from BOTH ends of every recording (task-switch transients)  # hhhy
+    SEGMENT_LENGTH = 8     # Segment length in seconds      # hhhy
+    OVERLAP_RATIO = 0.75   # Overlap ratio for segments     # hhhy
 
     # Preprocessing parameters (student)
     BANDPASS = (1.0, 45.0)     # Hz, band-pass range   # hhhy
     NOTCH_FREQ = 60.0          # Hz, mains frequency in Taiwan
-    ARTIFACT_THRESHOLD = None   # drop a segment if max|filtered amplitude| exceeds this (e.g. blink/EMG burst); None = keep all  # hhhy
 
     # Ablation switches (student): used by ablation.py to build Table 3 of the report.
     # Keep all three True for the final pipeline.
     USE_FILTERING = True       # DC removal + notch + band-pass
-    USE_FREQ_FEATURES = True   # band-power / ratio features
-    USE_TIME_FEATURES = True   # time-domain statistics
+    USE_FREQ_FEATURES = True   # log band powers
+    USE_TIME_FEATURES = True   # per-window log std + kurtosis
+    SUBJECT_ZSCORE = True      # z-score every subject's features with that subject's own mean/std (no labels)
+    STAT_WIN = 1.0             # seconds, short window inside a segment
+    STAT_STEP = 0.25           # seconds, hop between short windows
     # If both feature groups are False, the (optionally filtered) raw samples are the features.
 
     # Feature parameters (student)
-    BANDS = {                  # same six bands as in the lecture slides
+    BANDS = {                  # Hz; same six bands as in the lecture slides
         'delta': (1, 4), 'theta': (4, 8), 'alpha': (8, 13),
         'lowbeta': (13, 20), 'highbeta': (20, 30), 'gamma': (30, 45),
     }
 
     # Feature selection parameters
-    FEATURE_SELECTION = True  # hhhy
-    N_FEATURES_SELECT = 15    # hhhy
+    FEATURE_SELECTION = False  # hhhy
+    N_FEATURES_SELECT = 20     # hhhy
 
     # Reporting settings
     TARGET_ACCURACY = 0.75   # required level
@@ -109,35 +110,6 @@ class Config:
     # Other settings
     RANDOM_STATE = 42
 
-
-# ---- Student helper functions ------------------------------------------
-_SOS_BP = butter(4, Config.BANDPASS, btype='bandpass', fs=Config.SAMPLING_RATE, output='sos')
-_B_NOTCH, _A_NOTCH = iirnotch(Config.NOTCH_FREQ, Q=30, fs=Config.SAMPLING_RATE)
-
-def preprocess_segment(seg):
-    """Remove DC -> 60 Hz notch -> 1-45 Hz band-pass (zero-phase)"""
-    seg = np.asarray(seg, dtype=float)
-    seg = seg - np.mean(seg)
-    seg = filtfilt(_B_NOTCH, _A_NOTCH, seg)
-    seg = sosfiltfilt(_SOS_BP, seg)
-    return seg
-
-def _band_powers(seg):
-    """Welch PSD (1 Hz resolution) -> absolute power per band"""
-    fs = Config.SAMPLING_RATE
-    freqs, psd = welch(seg, fs=fs, nperseg=fs, noverlap=fs // 2)
-    df = freqs[1] - freqs[0]
-    return {name: psd[(freqs >= lo) & (freqs < hi)].sum() * df
-            for name, (lo, hi) in Config.BANDS.items()}
-
-def _hjorth(seg):
-    d1 = np.diff(seg)
-    d2 = np.diff(d1)
-    var0, var1, var2 = np.var(seg), np.var(d1), np.var(d2)
-    mobility = np.sqrt(var1 / var0)
-    complexity = np.sqrt(var2 / var1) / mobility
-    return mobility, complexity
-
 def create_segments(data, segment_length_samples, overlap_samples):
     """Split a single round of continuous EEG signal into multiple segments"""
     if len(data) < segment_length_samples:
@@ -153,19 +125,14 @@ def create_segments(data, segment_length_samples, overlap_samples):
         # ==========================================
         # === STUDENT PREPROCESSING HERE (Part 1)===
         # ==========================================
-        # Skip segments that touch the first/last TRIM_SECONDS of the recording
-        # (transients left over from the previous task / the task switch).
-        trim = int(Config.TRIM_SECONDS * Config.SAMPLING_RATE)
-        if start < trim or start + segment_length_samples > len(data) - trim:
-            start += step
-            continue
-
         if Config.USE_FILTERING:
-            segment = preprocess_segment(segment)
-        if (Config.ARTIFACT_THRESHOLD is not None
-                and np.max(np.abs(segment)) > Config.ARTIFACT_THRESHOLD):
-            start += step      # amplitude too large (likely blink/EMG): discard this segment
-            continue
+            # 1) remove DC -> 60 Hz notch -> 1-45 Hz band-pass (zero-phase)
+            segment = np.asarray(segment, dtype=float)
+            segment = segment - np.mean(segment)
+            b_notch, a_notch = iirnotch(Config.NOTCH_FREQ, Q=30, fs=Config.SAMPLING_RATE)
+            segment = filtfilt(b_notch, a_notch, segment)
+            sos_bp = butter(4, Config.BANDPASS, btype='bandpass', fs=Config.SAMPLING_RATE, output='sos')
+            segment = sosfiltfilt(sos_bp, segment)
 
         segments.append(segment)
         start += step
@@ -182,31 +149,64 @@ def extract_features(segments):
         # === STUDENT PREPROCESSING HERE (Part 2)===
         # ==========================================
         if not (Config.USE_FREQ_FEATURES or Config.USE_TIME_FEATURES):
-            features.append(seg)          # raw time-domain samples (ablation baseline)
+            features.append(seg)      # raw time-domain samples (ablation baseline)
             continue
 
-        eps = 1e-12
-        bp = _band_powers(seg)
-        total = sum(bp.values()) + eps
-        names = list(Config.BANDS)
-        current_feature = []
+        fs = Config.SAMPLING_RATE
 
-        if Config.USE_FREQ_FEATURES:
-            rel = [bp[n] / total for n in names]                    # relative power (more stable across subjects)
-            logp = [np.log10(bp[n] + eps) for n in names]           # log absolute power
-            ratios = [np.log10((bp['theta'] + eps) / (bp['lowbeta'] + bp['highbeta'] + eps)),  # theta/beta
-                      np.log10((bp['theta'] + eps) / (bp['alpha'] + eps)),                     # theta/alpha
-                      np.log10((bp['alpha'] + eps) / (bp['lowbeta'] + bp['highbeta'] + eps))]  # alpha/beta
-            current_feature += rel + logp + ratios + [np.log10(total)]
+        def segment_features(s):
+            """Distribution (mean / std / 90th percentile / max) of 1 s window features inside one segment.
+            A single Welch spectrum averages short alpha / theta bursts away; the distribution keeps them."""
+            n = int(Config.STAT_WIN * fs)
+            hop = max(1, int(Config.STAT_STEP * fs))
+            rows = []
+            for k in range(0, len(s) - n + 1, hop):
+                w = s[k:k + n]
+                row = []
+                if Config.USE_FREQ_FEATURES:
+                    freqs, psd = welch(w, fs=fs, nperseg=n, noverlap=n // 2)
+                    df = freqs[1] - freqs[0]
+                    bp = {name: psd[(freqs >= lo) & (freqs < hi)].sum() * df
+                          for name, (lo, hi) in Config.BANDS.items()}
+                    total = psd[(freqs >= 1) & (freqs < 45)].sum() * df + 1e-12
+                    beta = bp['lowbeta'] + bp['highbeta']
+                    row += [bp['alpha'] / total, bp['theta'] / total,
+                            bp['lowbeta'] / total, bp['highbeta'] / total,
+                            np.log10((bp['theta'] + 1e-12) / (beta + 1e-12)),    # theta / beta
+                            np.log10((bp['alpha'] + 1e-12) / (beta + 1e-12))]    # alpha / beta
+                if Config.USE_TIME_FEATURES:
+                    row += [np.log10(np.std(w) + 1e-12), kurtosis(w)]           # amplitude, spikiness
+                rows.append(row)
+            series = np.asarray(rows, dtype=float)
+            return np.concatenate([series.mean(axis=0), series.std(axis=0),
+                                   np.percentile(series, 90, axis=0), series.max(axis=0)])
 
-        if Config.USE_TIME_FEATURES:
-            mobility, complexity = _hjorth(seg)
-            current_feature += [np.log10(np.std(seg) + eps),                   # overall amplitude
-                                kurtosis(seg),                                 # kurtosis (blink/EMG spikes)
-                                np.log10(np.mean(np.abs(np.diff(seg))) + eps), # line length
-                                mobility, complexity]
+        # Subject-wise z-score. extract_features only receives segments (no subject id), so the
+        # table {segment -> normalised feature vector} is built once per configuration by running
+        # Part 1 + the features above on every recording and normalising each subject with that
+        # subject's own mean / std (labels are never used). All four models share these features.
+        cache_key = (Config.DATASET_PATH, Config.SEGMENT_LENGTH, Config.OVERLAP_RATIO,
+                     Config.BANDPASS, Config.USE_FILTERING,
+                     Config.USE_FREQ_FEATURES, Config.USE_TIME_FEATURES, Config.SUBJECT_ZSCORE,
+                     Config.STAT_WIN, Config.STAT_STEP)
+        if getattr(extract_features, "_key", None) != cache_key:
+            seg_len = int(Config.SEGMENT_LENGTH * fs)
+            ovl = int(seg_len * Config.OVERLAP_RATIO)
+            per_subject = {}
+            for path in sorted(glob.glob(os.path.join(Config.DATASET_PATH, "*", "*.txt"))):
+                sid = os.path.basename(os.path.dirname(path))
+                for s in create_segments(np.loadtxt(path), seg_len, ovl):
+                    per_subject.setdefault(sid, []).append((np.asarray(s).tobytes(), segment_features(s)))
+            table = {}
+            for sid, items in per_subject.items():
+                mat = np.vstack([v for _, v in items])
+                mu, sd = mat.mean(axis=0), mat.std(axis=0)
+                sd = np.where(sd < 1e-8, 1.0, sd)
+                for key, v in items:
+                    table[key] = (v - mu) / sd if Config.SUBJECT_ZSCORE else v
+            extract_features._table, extract_features._key = table, cache_key
 
-        current_feature = np.array(current_feature)
+        current_feature = extract_features._table[np.asarray(seg).tobytes()]
         features.append(current_feature)
 
     return np.array(features)
@@ -300,7 +300,6 @@ class MultiModelBCIClassifier:
             self.model = SVC(
                 kernel=Config.SVM_KERNEL,
                 C=Config.SVM_C,
-                gamma=Config.SVM_GAMMA,
                 probability=True,
                 random_state=Config.RANDOM_STATE
             )

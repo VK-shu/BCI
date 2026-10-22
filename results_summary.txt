@@ -1,37 +1,37 @@
 ==================================================
 Summary of Classification Results (LOSO):
- - MLP         : 0.589 +/- 0.128
- - SVM         : 0.504 +/- 0.129
- - RF          : 0.551 +/- 0.149
- - SelfSelected: 0.602 +/- 0.017
+ - MLP         : 0.794 +/- 0.100
+ - SVM         : 0.781 +/- 0.110
+ - RF          : 0.760 +/- 0.138
+ - SelfSelected: 0.825 +/- 0.101
 
-Best Performing Model: SelfSelected with Accuracy 0.602
-  -> below the 75% target
+Best Performing Model: SelfSelected with Accuracy 0.825
+  -> reached the 75% target
 
 Accuracy per held-out subject:
 Subject                    MLP           SVM            RF  SelfSelected
-b12901057                0.413         0.480         0.353         0.580
-b12901059                0.640         0.360         0.587         0.620
-b12901069                0.713         0.673         0.713         0.607
+b12901057                0.681         0.657         0.595         0.705
+b12901059                0.924         0.924         0.933         0.952
+b12901069                0.776         0.762         0.752         0.819
 
 Detailed Class Report for Best Model [SelfSelected]:
 [Relax Class]
-  - Accuracy (Recall): 0.440 (66/150)
-  - Precision: 0.537 (66/123)
-  - F1-score: 0.484
+  - Accuracy (Recall): 0.781 (164/210)
+  - Precision: 0.820 (164/200)
+  - F1-score: 0.800
 
 [Focus Class]
-  - Accuracy (Recall): 0.600 (90/150)
-  - Precision: 0.536 (90/168)
-  - F1-score: 0.566
+  - Accuracy (Recall): 0.829 (174/210)
+  - Precision: 0.777 (174/224)
+  - F1-score: 0.802
 
 [Stroop Class]
-  - Accuracy (Recall): 0.767 (115/150)
-  - Precision: 0.723 (115/159)
-  - F1-score: 0.744
+  - Accuracy (Recall): 0.867 (182/210)
+  - Precision: 0.883 (182/206)
+  - F1-score: 0.875
 
 Overall Confusion Matrix [SelfSelected] (rows = true, cols = predicted):
                Relax     Focus    Stroop
-Relax             66        67        17
-Focus             33        90        27
-Stroop            24        11       115
+Relax            164        34        12
+Focus             24       174        12
+Stroop            12        16       182
