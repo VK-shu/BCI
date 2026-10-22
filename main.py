@@ -47,37 +47,46 @@ class Config:
     CLASS_NAMES = ['Relax', 'Focus', 'Stroop']
 
     # MLP parameters
-    HIDDEN_LAYERS = (128, 64, 32)  # hhhy
-    MAX_ITER = 200                 # hhhy
-    LEARNING_RATE = 0.0025         # hhhy
-    ALPHA = 0.005                  # hhhy
+    HIDDEN_LAYERS = (64, 32)
+    MAX_ITER = 400
+    LEARNING_RATE = 0.001
+    ALPHA = 0.01
 
     # SVM parameters
-    SVM_KERNEL = 'rbf'   # hhhy
-    SVM_C = 1.2          # hhhy
-    SVM_GAMMA = 'scale'  # hhhy
+    SVM_KERNEL = 'rbf'
+    SVM_C = 2.0
+    SVM_GAMMA = 'scale'
 
     # Random Forest parameters
-    RF_ESTIMATORS = 200  # hhhy
-    RF_MAX_DEPTH = None  # hhhy
+    RF_ESTIMATORS = 400
+    RF_MAX_DEPTH = 6
 
     # Signal processing parameters
     SAMPLING_RATE = 512    # BrainLink fixed sampling rate
-    SEGMENT_LENGTH = 7     # Segment length in seconds      # hhhy
-    OVERLAP_RATIO = 0.7    # Overlap ratio for segments     # hhhy
-    TRIM_SECONDS = 1.0     # seconds cut from BOTH ends of every recording (task-switch transients)  # hhhy
+    SEGMENT_LENGTH = 18    # unused when ONE_SEGMENT_PER_BLOCK is True
+    OVERLAP_RATIO = 0.0
+    TRIM_SECONDS = 1.0     # seconds cut from BOTH ends of every recording
+    # One feature vector per 20 s block. Overlapping slices repeat the same
+    # block and do not add a cross-subject signal.
+    ONE_SEGMENT_PER_BLOCK = True
 
     # Preprocessing parameters (student)
-    BANDPASS = (1.0, 45.0)     # Hz, band-pass range   # hhhy
+    BANDPASS = (1.0, 45.0)     # Hz, band-pass range
     NOTCH_FREQ = 60.0          # Hz, mains frequency in Taiwan
-    ARTIFACT_THRESHOLD = None   # drop a segment if max|filtered amplitude| exceeds this (e.g. blink/EMG burst); None = keep all  # hhhy
+    ARTIFACT_THRESHOLD = None
 
     # Ablation switches (student): used by ablation.py to build Table 3 of the report.
-    # Keep all three True for the final pipeline.
     USE_FILTERING = True       # DC removal + notch + band-pass
-    USE_FREQ_FEATURES = True   # band-power / ratio features
-    USE_TIME_FEATURES = True   # time-domain statistics
+    USE_FREQ_FEATURES = True   # short-window band-power distribution
+    USE_TIME_FEATURES = False  # whole-block time statistics; off in the final pipeline
+    # Z-score each subject with their own mean/std (no labels). Removes
+    # headset-gain and EMG-amplitude differences before LOSO.
+    SUBJECT_ZSCORE = True
     # If both feature groups are False, the (optionally filtered) raw samples are the features.
+
+    # Short-window spectrum inside each block
+    STAT_WIN = 1.0             # seconds
+    STAT_STEP = 0.25           # seconds
 
     # Feature parameters (student)
     BANDS = {                  # same six bands as in the lecture slides
@@ -86,8 +95,8 @@ class Config:
     }
 
     # Feature selection parameters
-    FEATURE_SELECTION = True  # hhhy
-    N_FEATURES_SELECT = 15    # hhhy
+    FEATURE_SELECTION = False
+    N_FEATURES_SELECT = 15
 
     # Reporting settings
     TARGET_ACCURACY = 0.75   # required level
@@ -138,8 +147,63 @@ def _hjorth(seg):
     complexity = np.sqrt(var2 / var1) / mobility
     return mobility, complexity
 
+def _window_band_stats(seg):
+    """Mean, std, 90th percentile and max of 1 s band features inside one block.
+
+    A single Welch spectrum averages alpha bursts away. Keeping the distribution
+    of short windows preserves eyes-closed alpha and Stroop theta bursts.
+    """
+    fs = Config.SAMPLING_RATE
+    n = int(Config.STAT_WIN * fs)
+    step = max(1, int(Config.STAT_STEP * fs))
+    if len(seg) < n:
+        n = len(seg)
+        step = n
+    rows = []
+    for i in range(0, len(seg) - n + 1, step):
+        w = seg[i:i + n]
+        freqs, psd = welch(w, fs=fs, nperseg=n, noverlap=n // 2)
+        df = freqs[1] - freqs[0]
+
+        def bp(lo, hi):
+            mask = (freqs >= lo) & (freqs < hi)
+            return psd[mask].sum() * df if np.any(mask) else 0.0
+
+        theta, alpha = bp(4, 8), bp(8, 13)
+        lowbeta, highbeta = bp(13, 20), bp(20, 30)
+        beta = lowbeta + highbeta
+        total = bp(1, 45) + 1e-12
+        rows.append([
+            alpha / total,
+            theta / total,
+            lowbeta / total,
+            highbeta / total,
+            np.log10((theta + 1e-12) / (beta + 1e-12)),
+            np.log10((alpha + 1e-12) / (beta + 1e-12)),
+            np.log10(np.std(w) + 1e-12),
+        ])
+    series = np.asarray(rows, dtype=float)
+    return np.concatenate([
+        series.mean(axis=0),
+        series.std(axis=0),
+        np.percentile(series, 90, axis=0),
+        series.max(axis=0),
+    ])
+
 def create_segments(data, segment_length_samples, overlap_samples):
     """Split a single round of continuous EEG signal into multiple segments"""
+    trim = int(Config.TRIM_SECONDS * Config.SAMPLING_RATE)
+    if Config.ONE_SEGMENT_PER_BLOCK:
+        if len(data) <= 2 * trim + int(Config.STAT_WIN * Config.SAMPLING_RATE):
+            return []
+        segment = np.asarray(data[trim:len(data) - trim], dtype=float)
+        if Config.USE_FILTERING:
+            segment = preprocess_segment(segment)
+        if (Config.ARTIFACT_THRESHOLD is not None
+                and np.max(np.abs(segment)) > Config.ARTIFACT_THRESHOLD):
+            return []
+        return [segment]
+
     if len(data) < segment_length_samples:
         return []
 
@@ -186,18 +250,10 @@ def extract_features(segments):
             continue
 
         eps = 1e-12
-        bp = _band_powers(seg)
-        total = sum(bp.values()) + eps
-        names = list(Config.BANDS)
         current_feature = []
 
         if Config.USE_FREQ_FEATURES:
-            rel = [bp[n] / total for n in names]                    # relative power (more stable across subjects)
-            logp = [np.log10(bp[n] + eps) for n in names]           # log absolute power
-            ratios = [np.log10((bp['theta'] + eps) / (bp['lowbeta'] + bp['highbeta'] + eps)),  # theta/beta
-                      np.log10((bp['theta'] + eps) / (bp['alpha'] + eps)),                     # theta/alpha
-                      np.log10((bp['alpha'] + eps) / (bp['lowbeta'] + bp['highbeta'] + eps))]  # alpha/beta
-            current_feature += rel + logp + ratios + [np.log10(total)]
+            current_feature += list(_window_band_stats(seg))
 
         if Config.USE_TIME_FEATURES:
             mobility, complexity = _hjorth(seg)
@@ -263,6 +319,11 @@ def load_all_subjects():
 
         subject_features = np.vstack(subject_features)
         subject_labels = np.hstack(subject_labels)
+        if Config.SUBJECT_ZSCORE and len(subject_features) > 1:
+            mu = subject_features.mean(axis=0)
+            sd = subject_features.std(axis=0)
+            sd = np.where(sd < 1e-8, 1.0, sd)
+            subject_features = (subject_features - mu) / sd
 
         all_features.append(subject_features)
         all_labels.append(subject_labels)
@@ -293,7 +354,7 @@ class MultiModelBCIClassifier:
                 activation='relu',
                 solver='adam',
                 batch_size=32,
-                early_stopping=True,
+                early_stopping=False,
                 random_state=Config.RANDOM_STATE
             )
         elif model_type == 'SVM':
