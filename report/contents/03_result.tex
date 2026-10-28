@@ -23,7 +23,7 @@ All four classifiers were trained on the same feature set and evaluated with LOS
 \noindent Shrinkage LDA performed best with a mean accuracy of 0.825, which is 2.2, 3.1 and 6.5 percentage points higher than the SVM, MLP and RF, respectively. All four classifiers reached the 75\% target, and the best two (LDA and SVM) also exceed 80\%. The standard deviation is the (population) standard deviation of the three fold accuracies, i.e.\ it reflects the difference between the three members rather than the randomness of a single run.
 
 \subsection{Effect of Preprocessing and Feature Engineering}
-To quantify how much of the performance comes from the processing pipeline rather than from the classifier itself, we compare a reference configuration against our final pipeline. The reference configuration feeds the raw 8~s time-domain samples (4096 values per segment) directly to the four classifiers. We then add one step at a time: band-pass filtering of the raw samples, the window-based band-power features, the time-domain features, and finally the subject-wise z-score. For every row we report the accuracy of the best of the four models. \todo{這張表的結果是 Claude 用一支暫時的腳本跑的（把 SUBJECT\_ZSCORE 也當成一個開關）。你 repo 裡的 ablation.py 只有 4 列、且每一列都開著 z-score，無法重現第 3、4 列。需要的話請 Claude 幫你把 ablation.py 改成可以重現這張表，再重跑一次。}
+To quantify how much of the performance comes from the processing pipeline rather than from the classifier itself, we compare a reference configuration against our final pipeline. The reference configuration feeds the raw 8~s time-domain samples (4096 values per segment) directly to the four classifiers, with no filtering and no normalization. We then add exactly one step at a time: band-pass filtering of the raw samples, the window-based band-power features, the time-domain features, and finally the subject-wise z-score, which stays off until the last step. All other settings (segmentation, hyperparameters, LOSO folds) are identical in every row. For every row the table reports the accuracy of the best of the four models; the accuracy of every model is given in Appendix~\ref{app:app02}. The script \texttt{ablation.py} in the repository reproduces this table.
 
 \begin{table}[!htb]
     \centering
@@ -38,6 +38,8 @@ To quantify how much of the performance comes from the processing pipeline rathe
         + Window band-power features & 0.571 (LDA) & +5.5 points; compact spectral features are far better than raw samples. \\
         + Time-domain features (std, kurtosis) & 0.668 (MLP) & +9.7 points; amplitude and spikiness separate Stroop from the others. \\
         + Subject-wise z-score (final pipeline) & \textbf{0.825} (LDA) & +15.7 points; the largest single gain. \\
+        \midrule
+        \emph{Extra: band-power features + z-score, no time-domain features} & 0.803 (LDA) & Not a cumulative step; shows that the z-score alone lifts the band-power features from 0.571 to 0.803, and the time-domain features add the last 2.2 points. \\
         \bottomrule
     \end{tabularx}
 \end{table}

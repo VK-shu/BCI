@@ -1,5 +1,7 @@
-Configuration                   #feat             MLP             SVM              RF    SelfSelected            Best
-Raw time-domain samples          1536    0.389+/-0.012    0.384+/-0.020    0.336+/-0.010    0.312+/-0.007       MLP 0.389
-+ Filtering (raw samples)        1536    0.358+/-0.029    0.365+/-0.021    0.335+/-0.028    0.309+/-0.018       SVM 0.365
-+ Frequency features               16    0.428+/-0.069    0.421+/-0.096    0.425+/-0.095    0.516+/-0.079SelfSelected 0.516
-+ Time features (final)            21    0.457+/-0.128    0.413+/-0.094    0.425+/-0.093    0.476+/-0.092SelfSelected 0.476
+Configuration                      #feat               MLP               SVM                RF      SelfSelected              Best
+1 Raw samples                       4096     0.329+/-0.037     0.486+/-0.027     0.373+/-0.012     0.303+/-0.018         SVM 0.486
+2 + Filtering (raw samples)         4096     0.356+/-0.040     0.516+/-0.060     0.375+/-0.048     0.338+/-0.004         SVM 0.516
+3 + Window band-power features        24     0.514+/-0.082     0.487+/-0.078     0.506+/-0.087     0.571+/-0.068SelfSelected 0.571
+4 + Time-domain features              32     0.668+/-0.051     0.592+/-0.069     0.616+/-0.043     0.667+/-0.037         MLP 0.668
+5 + Subject z-score (final)           32     0.794+/-0.100     0.803+/-0.104     0.760+/-0.138     0.825+/-0.101SelfSelected 0.825
+(extra) band-power + z-score          24     0.743+/-0.136     0.781+/-0.132     0.752+/-0.165     0.803+/-0.121SelfSelected 0.803
