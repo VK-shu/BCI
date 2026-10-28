@@ -1,0 +1,40 @@
+%!TeX program = xelatex
+\documentclass[a4paper, 12pt]{article}
+\usepackage{BMEReport}
+
+% --------------------------------------------------
+% Set the title, group number, authors, and date
+\title{
+    Experiment 3 Report \\
+    BCI 初應用與資料蒐集
+}
+\setgroup{Group 5}
+\setauthors{
+    Student B12901057 & 楊程亘 \\ 
+    Student B12901059 & 陳裕穎 \\
+    Student B12901069 & 段奕鳴 \\
+}
+\setdate{Fall 2026}
+% --------------------------------------------------
+\begin{document}
+
+\maketitle
+
+\input{contents/01_introduction}
+\input{contents/02_method}
+\input{contents/03_result}
+\input{contents/04_discussion}
+\input{contents/05_conclusion}
+\input{contents/06_teamwork}
+
+% Appendices
+\begin{appendices}
+\input{back/appendix01}
+\input{back/appendix02}
+\end{appendices}
+
+% References
+\bibliographystyle{ieeetr}
+\bibliography{back/references}
+
+\end{document}

@@ -1,0 +1,135 @@
+% ---------------------------------------------------------------------
+% NTU Bioengineering Lab Exp3 Report Template
+% ---------------------------------------------------------------------
+% Version     : 3.1
+% Author      : HD Peng & TW Chen
+% Last Update : 2026.09.03
+
+% ---------------------------------------------------------------------
+% 01 Package Declaration
+% ---------------------------------------------------------------------
+\RequirePackage{xeCJK}        % For Chinese typesetting
+\RequirePackage{fontspec}     % For font configuration
+\RequirePackage{geometry}     % For page layout configuration
+\RequirePackage{graphicx}     % For including graphics
+\RequirePackage{titling}      % For custom title formatting
+\RequirePackage{lmodern}      % For modern Latin fonts
+\RequirePackage{hyperref}     % For hyperlinks
+\RequirePackage{fancyhdr}     % For custom headers and footers
+\RequirePackage{xcolor}       % For color customization
+\RequirePackage{amsmath, amsthm, amssymb} % For math environment
+\RequirePackage{array}        % For better control over table alignment
+\RequirePackage{booktabs}     % For professional-looking tables
+\RequirePackage[title, titletoc]{appendix}     % For appendix
+\RequirePackage[sort&compress,square,comma,numbers]{natbib} % For bibliography management
+\RequirePackage{enumitem}
+\RequirePackage{tabularx, multirow}   % For tables that automatically adjust to text width
+\RequirePackage{subcaption}    % For typesetting units correctly (e.g., k\Omega)
+\RequirePackage{listings}         % For typesetting code
+
+% Custom command for standout TODO notes
+\newcommand{\todo}[1]{\textcolor{red!80!black}{\textbf{[#1]}}}
+% ----- Style Definition for Python Code Listings -----
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{black!5},
+    commentstyle=\color{green!40!black},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{black!50},
+    stringstyle=\color{purple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    language=Python
+}
+\lstset{style=mystyle}
+% ---------------------------------------------------------------------
+% 03 Package Settings
+% ---------------------------------------------------------------------
+
+% Chinese Font Configuration
+\newcommand{\bme@path@cjkfont}{./fonts/Chinese/} % Path to Chinese fonts
+\XeTeXlinebreaklocale "zh"                       % Enable Chinese line breaking
+\XeTeXlinebreakskip = 0pt plus 1pt               % Line break tolerance
+\setCJKmainfont{BiauKai}[%
+    Path = \bme@path@cjkfont ,
+    Extension = .ttf ,
+    BoldFont = Kaiti-Black
+]
+
+% Page Layout Settings
+\geometry{
+    left=20mm,
+    right=20mm,
+    top=30mm,
+    bottom=20mm
+}
+
+% Set space between paragraphs
+\setlength{\parskip}{1em} % Adjust the value as needed
+
+% Hyperlink Settings
+\hypersetup{
+    colorlinks,
+    linkcolor=blue,
+    anchorcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+% Title, Group, Authors, and Date Placeholders
+\newcommand{\mytitle}{Untitled}
+\newcommand{\mygroup}{Group 0}
+\newcommand{\myauthors}{No authors defined}
+\newcommand{\documentdate}{\today}
+
+% Commands to Update Placeholders
+\renewcommand{\title}[1]{\renewcommand{\mytitle}{#1}}
+\newcommand{\setgroup}[1]{\renewcommand{\mygroup}{#1}}
+\newcommand{\setauthors}[1]{\renewcommand{\myauthors}{#1}}
+\newcommand{\setdate}[1]{\renewcommand{\documentdate}{#1}}
+
+% Custom \maketitle Command
+\renewcommand{\maketitle}{
+    \begingroup
+    \setlength{\parskip}{0pt} % Reset \parskip locally
+    \begin{center}
+        {\LARGE\bfseries \mytitle \par}  % Title in LARGE, bold font
+        \vspace{1em}                     % Space below the title
+        {\large\bfseries \mygroup \par}  % Group number in large, bold font
+        \vspace{0.5em}                   % Space below the group number
+        \begin{tabular}{@{}ll}           % Tabular format for authors
+            \myauthors
+        \end{tabular}
+        \vspace{1em}                     % Additional spacing below
+        \hrule
+    \end{center}
+    \endgroup
+}
+
+% Custom Header and Footer Configuration
+\setlength{\headheight}{14.5pt}  % Set header height to avoid warnings
+\addtolength{\topmargin}{-2.5pt} % Adjust top margin to maintain layout
+\fancypagestyle{mystyle}{
+    \fancyhf{} % Clear existing header and footer
+
+    % Define header content
+    \fancyhead[L]{115-1 Biomedical Engineering Lab} % Left header
+    \fancyhead[C]{}                                 % Center header
+    \fancyhead[R]{Exp3}                     % Right header
+
+    % Define footer content
+    \fancyfoot[L]{\documentdate} % Left footer
+    \fancyfoot[C]{\thepage}      % Center footer
+    \fancyfoot[R]{}              % Right footer
+}
+
+% Set Default Page Style
+\pagestyle{mystyle}

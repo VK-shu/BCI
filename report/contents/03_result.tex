@@ -1,0 +1,106 @@
+\newpage
+\section{Results and Analysis}\label{sec:result}
+
+\subsection{Comparison of the Four Classifiers}
+All four classifiers were trained on the same feature set and evaluated with LOSO cross-validation over the 3 group members. Table~\ref{tab:model_comparison} summarizes the overall mean accuracy and its standard deviation across the three folds.
+
+\begin{table}[!htb]
+    \centering
+    \caption{LOSO cross-validation accuracy of the four classifiers}
+    \label{tab:model_comparison}
+    \begin{tabularx}{\textwidth}{@{} l l l X @{}}
+        \toprule
+        \textbf{Model} & \textbf{Mean Accuracy} & \textbf{Std.} & \textbf{Remarks} \\
+        \midrule
+        MLP & 0.794 & $\pm$ 0.100 & Per subject (B12901057 / 059 / 069): 0.681 / 0.924 / 0.776. \\
+        SVM & 0.803 & $\pm$ 0.104 & Second best, with $C=0.2$; per subject: 0.686 / 0.938 / 0.786. \\
+        RF  & 0.760 & $\pm$ 0.138 & Lowest of the four; per subject: 0.595 / 0.933 / 0.752. \\
+        Shrinkage LDA (self-selected) & \textbf{0.825} & $\pm$ 0.101 & Best model; per subject: 0.705 / 0.952 / 0.819. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\noindent Shrinkage LDA performed best with a mean accuracy of 0.825, which is 2.2, 3.1 and 6.5 percentage points higher than the SVM, MLP and RF, respectively. All four classifiers reached the 75\% target, and the best two (LDA and SVM) also exceed 80\%. The standard deviation is the (population) standard deviation of the three fold accuracies, i.e.\ it reflects the difference between the three members rather than the randomness of a single run.
+
+\subsection{Effect of Preprocessing and Feature Engineering}
+To quantify how much of the performance comes from the processing pipeline rather than from the classifier itself, we compare a reference configuration against our final pipeline. The reference configuration feeds the raw 8~s time-domain samples (4096 values per segment) directly to the four classifiers. We then add one step at a time: band-pass filtering of the raw samples, the window-based band-power features, the time-domain features, and finally the subject-wise z-score. For every row we report the accuracy of the best of the four models. \todo{這張表的結果是 Claude 用一支暫時的腳本跑的（把 SUBJECT\_ZSCORE 也當成一個開關）。你 repo 裡的 ablation.py 只有 4 列、且每一列都開著 z-score，無法重現第 3、4 列。需要的話請 Claude 幫你把 ablation.py 改成可以重現這張表，再重跑一次。}
+
+\begin{table}[!htb]
+    \centering
+    \caption{Ablation study of the processing pipeline (accuracy of the best model)}
+    \label{tab:ablation}
+    \begin{tabularx}{\textwidth}{@{} l l X @{}}
+        \toprule
+        \textbf{Configuration} & \textbf{Mean Accuracy} & \textbf{Observation} \\
+        \midrule
+        Raw time-domain samples & 0.486 (SVM) & Reference; 4096-dimensional input, chance level is 0.333. \\
+        + Band-pass filtering (1--45~Hz, 60~Hz notch) & 0.516 (SVM) & +3.0 points; the raw samples remain high-dimensional and phase-dependent. \\
+        + Window band-power features & 0.571 (LDA) & +5.5 points; compact spectral features are far better than raw samples. \\
+        + Time-domain features (std, kurtosis) & 0.668 (MLP) & +9.7 points; amplitude and spikiness separate Stroop from the others. \\
+        + Subject-wise z-score (final pipeline) & \textbf{0.825} (LDA) & +15.7 points; the largest single gain. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\subsection{Detailed Results of the Best Model}
+Figure~\ref{fig:final_results} shows the results of our final run.
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\linewidth]{figures/bci_multi_model_comparison.png}
+    \caption{LOSO cross-validation results of the best model, including the accuracy of the four models, the per-subject accuracy for the 3 group members, and the overall $3 \times 3$ confusion matrix.}
+    \label{fig:final_results}
+\end{figure}
+
+\noindent The terminal output summary of the same run (\texttt{results\_summary.txt}) is:
+\begin{verbatim}
+Summary of Classification Results (LOSO):
+ - MLP         : 0.794 +/- 0.100
+ - SVM         : 0.803 +/- 0.104
+ - RF          : 0.760 +/- 0.138
+ - SelfSelected: 0.825 +/- 0.101
+
+Best Performing Model: SelfSelected with Accuracy 0.825
+  -> reached the 75% target
+
+Accuracy per held-out subject:
+Subject                    MLP           SVM            RF  SelfSelected
+b12901057                0.681         0.686         0.595         0.705
+b12901059                0.924         0.938         0.933         0.952
+b12901069                0.776         0.786         0.752         0.819
+
+Detailed Class Report for Best Model [SelfSelected]:
+[Relax Class]
+  - Accuracy (Recall): 0.781 (164/210)
+  - Precision: 0.820 (164/200)
+  - F1-score: 0.800
+
+[Focus Class]
+  - Accuracy (Recall): 0.829 (174/210)
+  - Precision: 0.777 (174/224)
+  - F1-score: 0.802
+
+[Stroop Class]
+  - Accuracy (Recall): 0.867 (182/210)
+  - Precision: 0.883 (182/206)
+  - F1-score: 0.875
+
+Overall Confusion Matrix [SelfSelected] (rows = true, cols = predicted):
+               Relax     Focus    Stroop
+Relax            164        34        12
+Focus             24       174        12
+Stroop            12        16       182
+\end{verbatim}
+
+\subsection{Result Analysis and Discussion}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Accuracy Comparison:} Shrinkage LDA (0.825) $>$ SVM (0.803) $>$ MLP (0.794) $>$ RF (0.760); all of them reached the $\geq 75\%$ target, and the best two models (LDA and SVM) also exceeded 80\%. LDA suits this dataset for three reasons. After the subject-wise z-score, the class differences are mostly shifts of the mean of a few band features (Relax has the highest relative alpha, Focus the highest relative beta, Stroop the highest amplitude and theta, see below), which a linear boundary can separate. There are only 420 training samples for 32 features, so a model with few parameters and automatic covariance shrinkage is less prone to over-fitting than the MLP or the RF. Finally, LDA has no hyperparameter that needs tuning on only three folds. \todo{「Relax 最高 alpha、Focus 最高 beta、Stroop 最高振幅」這些是 Claude 用最終特徵算的類別平均（z-score 後、三位受試者合併）：alpha 相對功率 Relax +0.95 / Focus −0.30 / Stroop −0.65；高 beta 相對功率 −0.69 / +0.87 / −0.18；log 標準差 −0.55 / −0.34 / +0.89；峰度 −0.59 / −0.39 / +0.98。請自行對照確認。}
+    \item \textbf{Confusion Matrix Analysis:} Using the $3 \times 3$ confusion matrix in Figure~\ref{fig:final_results}:
+    \begin{itemize}
+        \item \emph{Easiest class: Stroop} (recall 0.867, precision 0.883). Its z-scored amplitude and kurtosis are the highest (+0.89 and +0.98 versus $-0.55$/$-0.59$ for Relax), and its relative theta and $\theta/\beta$ are also the highest. This is consistent with the key presses, blinks and muscle activity of the Stroop task plus frontal theta under cognitive conflict. \todo{「按鍵/眨眼/肌電造成振幅變大」是合理推論，但單通道資料無法分離腦電與肌電；請決定是否保留這個說法，或加註為推測。}
+        \item \emph{Most confused pair: Relax and Focus.} 34 Relax segments were predicted as Focus and 24 Focus segments as Relax (58 errors), compared with 28 errors between Focus and Stroop and 24 between Relax and Stroop. Both states are low-amplitude, and they differ mainly in the balance between alpha (higher in Relax, +0.95) and beta (higher in Focus), which is subtle at a single frontal electrode.
+        \item \emph{Effect of our processing.} The ablation (Table~\ref{tab:ablation}) shows that the amplitude/kurtosis features and the subject-wise normalization raised the accuracy overall, but we did not measure their effect on the Relax--Focus confusion alone, and no post-processing was used in the final code (Section~\ref{sec:method}, Table~\ref{tab:postproc}). The Relax--Focus confusion therefore remains the main residual error.
+    \end{itemize}
+    \item \textbf{Inter-Subject Variability:} The model did not perform equally well on all members. With LDA, B12901059 reached 0.952, B12901069 0.819, and B12901057 only 0.705; the other models show the same ranking. For B12901057, 28 of 70 Relax segments were predicted as Focus. The class means explain part of it: B12901059 has a large alpha contrast between Relax and Focus (z-scored relative alpha $+1.29$ versus $-0.73$) and B12901069 a moderate one ($+1.15$ versus $-0.38$), while B12901057 has a weak one ($+0.41$ versus $+0.21$), and for B12901057 the amplitude of Relax is even larger than that of Focus ($-0.09$ versus $-0.85$ in z-scored log standard deviation), the reverse of B12901059 ($-1.25$ versus $+0.20$). A model trained on the other two members therefore mislabels this member's Relax recordings. \todo{造成 B12901057 alpha 對比變弱的原因（睜眼/閉眼、放鬆程度、電極接觸、坐姿）Claude 無法從資料判斷，請依實際錄製情況補寫，或刪掉推測。}
+    \item \textbf{Method Effectiveness Analysis:} Based on Table~\ref{tab:ablation}, the \emph{subject-wise z-score} contributed the most (+15.7 points, from 0.668 to 0.825), followed by the \emph{time-domain features} (+9.7), the \emph{window band-power features} (+5.5) and \emph{filtering} (+3.0). Replacing 4096 raw samples with 24--32 physiologically motivated features is what makes a high LOSO accuracy possible, and the z-score removes the between-subject baseline differences that otherwise dominate (for instance, the Relax amplitude of B12901059 is far below that of the others). Note that the z-score uses the held-out member's own unlabeled data to compute the mean and standard deviation.
+    \item \textbf{Limitations:} The data consist of a single dry electrode at Fp1 and only three subjects, so the 630 segments come from just 90 recordings and overlapping segments are correlated. Treating the 90 recordings as the independent units, the 95\% confidence interval of the best accuracy is roughly $\pm$8 percentage points, and each fold tests a single person only. The segment length, the features and the normalization were selected using the same three subjects, so the reported accuracy is optimistic. The subject-wise z-score also needs a recording of the target user before the model can be used, so it does not give a calibration-free subject-independent model. A more reliable conclusion would need more subjects (ideally more than ten), more electrode sites, a recording protocol that controls eye movement and key presses, and a validation on subjects never used for choosing the features or hyperparameters. \todo{「95\% 信賴區間約 ±8 個百分點」是 Claude 以 90 筆錄音當獨立單位、用二項分布粗估的數字，只是量級參考；請確認是否保留。}
+\end{itemize}

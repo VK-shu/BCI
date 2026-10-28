@@ -1,0 +1,80 @@
+\section{Experimental Results}\label{app:app02}
+
+\begin{table}[!htb]
+    \centering
+    \caption{Per-subject LOSO accuracy of the four models (final pipeline)}
+    \label{tab:per_subject}
+    \begin{tabularx}{\textwidth}{@{} l X X X X @{}}
+        \toprule
+        \textbf{Held-out subject} & \textbf{MLP} & \textbf{SVM} & \textbf{RF} & \textbf{Shrinkage LDA} \\
+        \midrule
+        B12901057 & 0.681 & 0.686 & 0.595 & 0.705 \\
+        B12901059 & 0.924 & 0.938 & 0.933 & 0.952 \\
+        B12901069 & 0.776 & 0.786 & 0.752 & 0.819 \\
+        \midrule
+        Mean $\pm$ std & 0.794 $\pm$ 0.100 & 0.803 $\pm$ 0.104 & 0.760 $\pm$ 0.138 & 0.825 $\pm$ 0.101 \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\begin{table}[!htb]
+    \centering
+    \caption{Ablation study: mean LOSO accuracy $\pm$ std of every model for each configuration}
+    \label{tab:ablation_full}
+    \begin{tabularx}{\textwidth}{@{} l r X X X X @{}}
+        \toprule
+        \textbf{Configuration} & \textbf{\#feat.} & \textbf{MLP} & \textbf{SVM} & \textbf{RF} & \textbf{LDA} \\
+        \midrule
+        Raw samples & 4096 & 0.329 $\pm$ 0.037 & 0.486 $\pm$ 0.027 & 0.373 $\pm$ 0.012 & 0.303 $\pm$ 0.018 \\
+        + Filtering (raw samples) & 4096 & 0.356 $\pm$ 0.040 & 0.516 $\pm$ 0.060 & 0.375 $\pm$ 0.048 & 0.338 $\pm$ 0.004 \\
+        + Window band-power features & 24 & 0.514 $\pm$ 0.082 & 0.487 $\pm$ 0.078 & 0.506 $\pm$ 0.087 & 0.571 $\pm$ 0.068 \\
+        + Time-domain features & 32 & 0.668 $\pm$ 0.051 & 0.592 $\pm$ 0.069 & 0.616 $\pm$ 0.043 & 0.667 $\pm$ 0.037 \\
+        + Subject-wise z-score (final) & 32 & 0.794 $\pm$ 0.100 & 0.803 $\pm$ 0.104 & 0.760 $\pm$ 0.138 & 0.825 $\pm$ 0.101 \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\begin{table}[!htb]
+    \centering
+    \caption{Sensitivity of the LOSO accuracy to the hyperparameters (one parameter varied at a time while the others stay at their final setting)}
+    \label{tab:sens}
+    \begin{tabularx}{\textwidth}{@{} l l X @{}}
+        \toprule
+        \textbf{Model} & \textbf{Parameter} & \textbf{Tested values: mean accuracy} \\
+        \midrule
+        MLP & hidden layers & (32): 0.779; (64, 32): 0.790; (128, 64, 32): 0.794; (256, 128, 64): 0.783 \\
+        MLP & learning rate & 0.0005: 0.784; 0.001: 0.783; 0.0025: 0.794; 0.01: 0.795 \\
+        MLP & alpha (L2) & 0.0001: 0.773; 0.005: 0.794; 0.05: 0.787; 0.5: 0.800 \\
+        MLP & max iterations & 50, 150, 300: 0.794 in all three cases \\
+        SVM & kernel & linear: 0.768; rbf: 0.803; poly: 0.729 \\
+        SVM & C & 0.1: 0.803; 0.2: 0.803 (final); 0.5: 0.797; 1.0: 0.781; 2.0: 0.762; 10: 0.738 \\
+        RF & n\_estimators & 50: 0.737; 100: 0.760; 300: 0.756 \\
+        RF & max\_depth & 3: 0.759; 6: 0.752; 10: 0.756; None: 0.760 \\
+        \midrule
+        \multicolumn{3}{@{}l}{\textbf{Feature selection} (\texttt{SelectKBest}, best of the four models in parentheses)} \\
+        All & $k=8$ & MLP 0.714, SVM 0.767, RF 0.719, LDA 0.783 \\
+        All & $k=15$ & MLP 0.743, SVM 0.773, RF 0.733, LDA 0.810 \\
+        All & $k=20$ & MLP 0.757, SVM 0.792, RF 0.737, LDA 0.811 \\
+        All & no selection (32) & MLP 0.794, SVM 0.803, RF 0.760, LDA 0.825 \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\begin{table}[!htb]
+    \centering
+    \caption{Effect of the segment length and the overlap ratio on the LOSO accuracy}
+    \label{tab:seg_sweep}
+    \begin{tabularx}{\textwidth}{@{} r r r X X X X @{}}
+        \toprule
+        \textbf{Length (s)} & \textbf{Overlap} & \textbf{Samples/subject} & \textbf{MLP} & \textbf{SVM} & \textbf{RF} & \textbf{LDA} \\
+        \midrule
+        3  & 0.50 & 360 & 0.715 & 0.741 & 0.704 & 0.719 \\
+        5  & 0.50 & 210 & 0.754 & 0.792 & 0.743 & 0.795 \\
+        5  & 0.75 & 390 & 0.743 & 0.778 & 0.738 & 0.782 \\
+        8  & 0.50 & 120 & 0.761 & 0.797 & 0.725 & 0.806 \\
+        \textbf{8}  & \textbf{0.75} & \textbf{210} & \textbf{0.794} & \textbf{0.803} & \textbf{0.760} & \textbf{0.825} \\
+        10 & 0.50 & 90  & 0.785 & 0.822 & 0.767 & 0.852 \\
+        10 & 0.75 & 150 & 0.791 & 0.804 & 0.753 & 0.836 \\
+        \bottomrule
+    \end{tabularx}
+\end{table}

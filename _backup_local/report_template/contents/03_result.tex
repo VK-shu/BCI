@@ -1,0 +1,90 @@
+\newpage
+\section{Results and Analysis}\label{sec:result}
+
+\subsection{Comparison of the Four Classifiers}
+All four classifiers were trained on the same feature set and evaluated with LOSO cross-validation over the 3 group members. Table~\ref{tab:model_comparison} summarizes the overall mean accuracy and its standard deviation across the three folds.
+
+\begin{table}[!htb]
+    \centering
+    \caption{LOSO cross-validation accuracy of the four classifiers}
+    \label{tab:model_comparison}
+    \begin{tabularx}{\textwidth}{@{} l l l X @{}}
+        \toprule
+        \textbf{Model} & \textbf{Mean Accuracy} & \textbf{Std.} & \textbf{Remarks} \\
+        \midrule
+        MLP & \todo{} & \todo{$\pm$ } & \todo{} \\
+        SVM & \todo{} & \todo{$\pm$ } & \todo{} \\
+        RF  & \todo{} & \todo{$\pm$ } & \todo{} \\
+        \todo{Self-selected} & \todo{} & \todo{$\pm$ } & \todo{} \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\noindent \todo{State which model performed best and by how much.}
+
+\subsection{Effect of Preprocessing and Feature Engineering}
+To quantify how much of the performance comes from the processing pipeline rather than from the classifier itself, we compare a reference configuration against our final pipeline. \todo{Define your own reference configuration, e.g., the raw time-domain samples fed directly to the classifiers with no filtering and report its accuracy. If you performed a step-by-step ablation, present it here.}
+
+\begin{table}[!htb]
+    \centering
+    \caption{Ablation study of the processing pipeline (accuracy of the best model)}
+    \label{tab:ablation}
+    \begin{tabularx}{\textwidth}{@{} l l X @{}}
+        \toprule
+        \textbf{Configuration} & \textbf{Mean Accuracy} & \textbf{Observation} \\
+        \midrule
+        \todo{Raw time-domain samples} & \todo{} & \todo{} \\
+        \todo{+ Bandpass filtering} & \todo{} & \todo{} \\
+        \todo{+ ...} & \todo{} & \todo{} \\
+        \todo{Final pipeline} & \todo{} & \todo{} \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\subsection{Detailed Results of the Best Model}
+\todo{Insert your final results image here.}
+\begin{figure}[h!]
+    \centering
+    % \includegraphics[width=\linewidth]{your_final_results.png}
+    \caption{LOSO cross-validation results of the best model, including the accuracy of the four models, the per-subject accuracy for the 3 group members, and the overall $3 \times 3$ confusion matrix.}
+    \label{fig:final_results}
+\end{figure}
+
+\noindent \todo{Insert your final terminal output summary here.}
+\begin{verbatim}
+Summary of Classification Results:
+ - MLP         : 0.XXX +/- 0.XXX
+ - SVM         : 0.XXX +/- 0.XXX
+ - RF          : 0.XXX +/- 0.XXX
+ - SelfSelected: 0.XXX +/- 0.XXX
+
+Best Performing Model: XXX with Accuracy 0.XXX
+
+Detailed Class Report for Best Model [XXX]:
+[Relax Class]
+  - Accuracy (Recall): 0.XXX
+  - Precision: 0.XXX
+
+[Focus Class]
+  - Accuracy (Recall): 0.XXX
+  - Precision: 0.XXX
+
+[Stroop Class]
+  - Accuracy (Recall): 0.XXX
+  - Precision: 0.XXX
+\end{verbatim}
+
+\subsection{Result Analysis and Discussion}
+\todo{Analyze your results in depth.}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Accuracy Comparison:} Compare the four models in Table~\ref{tab:model_comparison}. Did the best model reach the $\geq 75\%$ target? Explain why the winning model suits this dataset.
+    \item \textbf{Confusion Matrix Analysis:} Using the $3 \times 3$ confusion matrix in Figure~\ref{fig:final_results}:
+    \begin{itemize}
+        \item Which class was the easiest for the model to identify? Relate your answer to the expected spectral signature of that state at Fp1.
+        \item Which two classes were most frequently confused with each other?
+        \item How did your feature engineering or post-processing help resolve this confusion?
+    \end{itemize}
+    \item \textbf{Inter-Subject Variability:} Looking at the per-subject bar chart in Figure~\ref{fig:final_results}, did the model perform equally well on all 3 group members? If one member had a significantly lower accuracy, discuss potential reasons.
+    \item \textbf{Method Effectiveness Analysis:} Based on Table~\ref{tab:ablation}, discuss which processing step contributed the most to the improvement. Justify your reasoning.
+    \item \textbf{Limitations:} \todo{Discuss the limitations of a single-channel Fp1 recording with only 3 subjects, and what would be needed for a more reliable subject-independent conclusion.}
+\end{itemize}

@@ -1,0 +1,100 @@
+\section{Methodology for Model Optimization}\label{sec:method}
+
+This section describes the self-recorded dataset, the data processing pipeline, the hyperparameter tuning of the four classifiers, and the performance evaluation method used to optimize the models on our 3-member group dataset.
+
+\subsection{Dataset and Environment}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Data Source}: \texttt{bci\_dataset\_115-1}, containing self-recorded data from our 3 group members (30 recordings per subject, 90 in total).
+    \item \textbf{Signal Type}: Single-channel (Fp1) EEG time-domain signal recorded via BrainLink with a dry electrode.
+    \item \textbf{Sampling Rate}: 512 Hz; each recording covers one 20~s block (10240 samples).
+    \item \textbf{Labels}: Each subject has ten rounds of recordings for three states (\texttt{\_1\_} = Relax, \texttt{\_2\_} = Focus, \texttt{\_3\_} = Stroop).
+    \item \textbf{Environment}: Python 3.11 managed via \texttt{uv}, utilizing Scikit-learn, NumPy, SciPy, and other required packages.
+\end{itemize}
+
+\subsection{Data Preprocessing and Feature Engineering}
+All processing is implemented inside the marked student blocks of \texttt{main.py} (Part~1 preprocessing, Part~2 feature engineering, the self-selected model block) and in the \texttt{Config} class. The classifier wrapper, the LOSO loop and the reporting code are unchanged, and all four classifiers share exactly the same feature matrix.
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Data Segmentation:}
+    \begin{itemize}
+        \item \texttt{SEGMENT\_LENGTH}: \textbf{8~s} (4096 samples). A longer segment gives more 1~s windows for the distribution features described below and a more reliable estimate of band power, while a shorter segment gives more training samples. In a sweep over 3--10~s (Table~\ref{tab:seg_sweep} in Appendix~\ref{app:app02}) the mean accuracy rose from 0.72 at 3~s to about 0.80--0.85 at 8--10~s for the best model; we chose 8~s because it still provides 210 samples per subject. 
+        \item \texttt{OVERLAP\_RATIO}: \textbf{0.75} (2~s hop). Each 20~s recording yields 7 segments, i.e.\ 70 segments per class and 210 per subject (630 in total). Overlap increases the number of training samples without discarding data, but neighbouring segments are correlated, so they do not add fully independent information.
+    \end{itemize}
+
+    \item \textbf{Preprocessing Pipeline:} applied to every 8~s segment, in this order:
+    \begin{enumerate}
+        \item \textbf{DC removal}: subtract the segment mean to remove the electrode offset.
+        \item \textbf{60~Hz notch filter} (IIR notch, $Q=30$) to suppress mains interference (60~Hz in Taiwan).
+        \item \textbf{Band-pass filter 1--45~Hz} (4th-order Butterworth, applied forward and backward so that the phase is zero) to remove slow drift and to keep the delta to gamma range.
+    \end{enumerate}
+    No segment is discarded by an amplitude threshold. \todo{Claude 的資料檢查顯示 B12901069 前幾輪錄音有明顯大幅度雜訊（標準差約 54--91，最大絕對值到約 1567（原始數值單位），其餘檔案標準差中位數約 31--36），目前仍保留在資料中；若你們有刪除或重錄的決定，請在這裡補上說明。}
+
+    \item \textbf{Feature Engineering:} a single Welch spectrum over 8~s averages away short bursts (for example alpha bursts or a keypress artifact). Therefore, inside each segment we slide a 1~s window with a 0.25~s hop, compute 8 features per window, and describe the resulting series by its distribution (mean, standard deviation, 90th percentile and maximum). This gives $8 \times 4 = 32$ features per segment.
+    \begin{itemize}
+        \item \textbf{Frequency-Domain Features}: for each window a Welch PSD (one 512-point Hann window covering the 1~s window) is computed, and we take the relative power of theta (4--8~Hz), alpha (8--13~Hz), low beta (13--20~Hz) and high beta (20--30~Hz) with respect to the total 1--45~Hz power, plus $\log_{10}(\theta/\beta)$ and $\log_{10}(\alpha/\beta)$ with $\beta = $ low + high beta. These match the expected physiology: Relax should show relatively more alpha, Focus relatively more beta, and Stroop relatively more theta together with a higher $\theta/\beta$ ratio under cognitive conflict.
+        \item \textbf{Time-Domain Features}: $\log_{10}$ of the window standard deviation (overall amplitude) and kurtosis (spikiness). They contribute information that the normalized spectrum cannot give: Stroop involves key presses and more blinking and muscle activity, which raise the amplitude and the kurtosis. The ablation in Table~\ref{tab:ablation} shows that they add about 10 percentage points before subject-wise normalization.
+        \item \textbf{Feature Scaling}: two stages. (1) \emph{Subject-wise z-score} inside Part~2: the 210 feature vectors of each subject are standardized with that subject's own mean and standard deviation (no labels are used), which removes between-subject differences in electrode contact, gain and baseline amplitude. Because \texttt{extract\_features} only receives segments and no subject ID, the segment-to-feature table is built once per configuration from all recordings, and each subject is then normalized. (2) The framework's \texttt{StandardScaler} is fitted on the training subjects only. 
+        \item \textbf{Feature Selection:}
+        \begin{itemize}
+            \item \texttt{FEATURE\_SELECTION}: \textbf{False}.
+            \item \texttt{N\_FEATURES\_SELECT}: not used (left at 20). With only 32 features, enabling feature selection with $k=8$, 15 or 20 lowered the best accuracy from 0.825 to 0.783, 0.810 and 0.811, respectively (Table~\ref{tab:sens} in Appendix~\ref{app:app02}), so all 32 features are kept.
+        \end{itemize}
+    \end{itemize}
+\end{itemize}
+
+\subsection{Classifiers and Hyperparameter Tuning}
+This experiment requires implementing and comparing at least four classifiers: \texttt{MLPClassifier}, \texttt{SVC}, \texttt{RandomForestClassifier}, and one self-selected model. As the fourth classifier we chose \textbf{shrinkage Linear Discriminant Analysis} (LDA, \texttt{solver='lsqr'}, \texttt{shrinkage='auto'}). It is a linear model with few parameters, and the automatic (Ledoit--Wolf) shrinkage regularizes the covariance estimate, which suits a small training set (420 samples, 32 features per LOSO fold). LDA is also a common baseline in EEG BCIs. The table below lists the final settings used in this report. Starting from the framework's initial values, we varied one hyperparameter at a time around the final setting and compared the LOSO accuracy (Table~\ref{tab:sens} in Appendix~\ref{app:app02}). The three non-linear models were largely insensitive: the MLP stayed within 0.77--0.80, the Random Forest within 0.75--0.76 once it had at least 100 trees, and the SVM was the most sensitive, since a larger \texttt{C} overfitted (0.738 at $C=10$) while smaller values were better (0.781 at the default $C=1$, 0.803 at $C=0.1$ and $C=0.2$). We therefore lowered \texttt{C} from 1.0 to 0.2. Note that this value was chosen on the same three subjects that are used for the evaluation, so the SVM accuracy is slightly optimistic. 
+
+\begin{table}[!htb]
+    \centering
+    \caption{Final Hyperparameter Settings of the Four Classifiers}
+    \label{tab:hyperparams}
+    \begin{tabularx}{\textwidth}{@{} l l l X @{}}
+        \toprule
+        \textbf{Model} & \textbf{Parameter} & \textbf{Final Setting} & \textbf{Justification for this Setting} \\
+        \midrule
+        \multirow{3}{*}{MLP} & \texttt{HIDDEN\_LAYER\_SIZES} & (128, 64, 32) & Funnel-shaped network for 32 inputs; one to three layers gave 0.779--0.794, so the size is not critical. \\
+                             & \texttt{LEARNING\_RATE\_INIT} & 0.0025 & Adam step size; values from 0.0005 to 0.01 gave 0.783--0.795. \\
+                             & \texttt{ALPHA} (L2) & 0.005 & Mild weight decay against over-fitting the small sample (0.0001 gave 0.773, 0.005 gave 0.794). \\
+        \midrule
+        \multirow{3}{*}{SVM} & \texttt{kernel} & rbf & Better than linear (0.768) and polynomial (0.729) kernels. \\
+                             & \texttt{C} & 0.2 & Stronger regularization is better on this small, noisy set: 0.781 at $C=1$ (default), 0.797 at 0.5, 0.803 at 0.2 and 0.1, and over-fitting at larger values (0.762 at $C=2$, 0.738 at $C=10$). \\
+                             & \texttt{gamma} & \texttt{'scale'} (default) & Not tuned: scikit-learn's default $1/(n_{features}\cdot \mathrm{Var}(X))$ adapts to the standardized features. \\
+        \midrule
+        \multirow{2}{*}{RF}  & \texttt{n\_estimators} & 100 & 50 trees gave 0.737, 100 gave 0.760 and 300 gave 0.756, so accuracy saturates at about 100 trees. \\
+                             & \texttt{max\_depth} & None & Depths 3, 6, 10 and unlimited gave 0.752--0.760, so the depth has little effect. \\
+        \midrule
+        Shrinkage LDA & \texttt{solver}, \texttt{shrinkage} & \texttt{'lsqr'}, \texttt{'auto'} & Ledoit--Wolf shrinkage chooses the regularization automatically from the data, so no manual tuning is needed. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\subsection{Post-processing}
+\textbf{Not used in the submitted code.} The \texttt{POSTPROCESSING} block of \texttt{predict} is left empty, so every 8~s segment is classified independently by the model's output. We nevertheless evaluated several candidate methods offline, using the same trained models and the same LOSO folds, and did not adopt them for the reasons below. All methods only change the predicted labels of the held-out member and leave the classifiers untouched. Table~\ref{tab:postproc} lists the mean LOSO accuracy.
+
+\begin{table}[!htb]
+    \centering
+    \caption{Candidate post-processing methods (mean LOSO accuracy, final models)}
+    \label{tab:postproc}
+    \begin{tabularx}{\textwidth}{@{} X c c c c @{}}
+        \toprule
+        \textbf{Method} & \textbf{MLP} & \textbf{SVM} & \textbf{RF} & \textbf{LDA} \\
+        \midrule
+        None (\texttt{predict}, submitted) & 0.794 & 0.803 & 0.760 & 0.825 \\
+        Arg-max of the class probabilities (reference for the rows below) & 0.794 & 0.795 & 0.760 & 0.825 \\
+        Equal class share (re-weight the probabilities so each class gets about 1/3) & 0.794 & 0.800 & 0.770 & 0.813 \\
+        $k$NN smoothing ($k=10$, average the probabilities of the nearest test segments in feature space) & 0.802 & 0.813 & 0.783 & 0.833 \\
+        Label propagation on the $k$NN graph ($k=10$) & 0.829 & 0.811 & 0.771 & 0.832 \\
+        Label propagation + equal class share & 0.817 & 0.824 & 0.794 & 0.856 \\
+        Moving average over 9 neighbouring rows (\emph{not valid}, see text) & 0.844 & 0.840 & 0.792 & 0.875 \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Smoothing over neighbouring rows / majority voting per 20~s recording:} not used. These give the highest numbers, but \texttt{predict} receives the test matrix ordered by class, so averaging neighbouring rows uses the order of the labels. When we shuffled the rows of the test member, the accuracy of LDA with a 5-row moving average dropped from 0.825 to 0.451. We regard these results as a leak and do not report them as an improvement.
+    \item \textbf{$k$NN smoothing, label propagation and equal class share:} order-independent by construction (for $k$NN smoothing we verified that shuffling the rows gives identical results), and they raised the accuracy of some models by 1--3 points. However, the gain is small and inconsistent across models and folds (for example, label propagation lowered LDA on B12901069 from 0.819 to 0.805), they use the unlabeled test data of the held-out member (as our z-score does), and only three folds are available to judge them. Since the best model already exceeds 80\% without them, we kept the simpler, unprocessed prediction.
+    \item \textbf{Probability thresholds and clustering of the test segments:} not used. Rejecting low-confidence segments still requires a label, and clustering the test segments (cluster-wise voting, a Gaussian mixture initialized from the predictions) was unstable: the Gaussian mixture raised the MLP, SVM and RF by about 4--6 points but lowered LDA to 0.790, with B12901069 falling to 0.595.
+\end{itemize}
+
+\subsection{Performance Evaluation Method}
+All four classifiers are evaluated with \textbf{LOSO Cross-Validation} to assess their generalization ability across different users. In this method, the data of one group member is used as the test set, while the data from the remaining 2 group members are used for training. This process is repeated 3 times, with each member serving as the test set once, and the reported result is the mean accuracy with its standard deviation across the three folds. In addition to overall accuracy, the per-class precision and recall and the $3\times3$ confusion matrix of the best model are reported in Section~\ref{sec:result}.

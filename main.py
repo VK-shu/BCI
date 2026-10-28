@@ -54,7 +54,7 @@ class Config:
 
     # SVM parameters
     SVM_KERNEL = 'rbf'   # hhhy
-    SVM_C = 1.0          # hhhy
+    SVM_C = 0.2          # hhhy
     # gamma is left at the scikit-learn default ('scale'); the SVC constructor is not edited
 
     # Random Forest parameters
