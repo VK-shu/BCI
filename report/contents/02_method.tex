@@ -4,7 +4,7 @@ This section describes the self-recorded dataset, the data processing pipeline, 
 
 \subsection{Dataset and Environment}
 \begin{itemize}[leftmargin=*]
-    \item \textbf{Data Source}: \texttt{bci\_dataset\_115-1}, containing self-recorded data from our 3 group members (30 recordings per subject, 90 in total). B12901057 and B12901069 each recorded the protocol more than once; for B12901057 we use the last session, in which the Focus round~6 file (\texttt{\_2\_6}) was recorded again separately, and for B12901069 we use the third session. \todo{補上重錄的原因與日期}
+    \item \textbf{Data Source}: \texttt{bci\_dataset\_115-1}, containing self-recorded data from our 3 group members (30 recordings per subject, 90 in total). B12901057 and B12901069 recorded the protocol more than once. The spectra of the first recordings did not match the examples in the course material or the typical EEG spectrum, and the first session was likely disturbed by a crowded, noisy room and a tired subject, so we recorded again. The dataset contains one complete session of each member.
     \item \textbf{Signal Type}: Single-channel (Fp1) EEG time-domain signal recorded via BrainLink with a dry electrode.
     \item \textbf{Sampling Rate}: 512 Hz; each recording covers one 20~s block (10240 samples).
     \item \textbf{Labels}: Each subject has ten rounds of recordings for three states (\texttt{\_1\_} = Relax, \texttt{\_2\_} = Focus, \texttt{\_3\_} = Stroop).
@@ -16,7 +16,7 @@ All processing is implemented inside the marked student blocks of \texttt{main.p
 \begin{itemize}[leftmargin=*]
     \item \textbf{Data Segmentation:}
     \begin{itemize}
-        \item \texttt{SEGMENT\_LENGTH}: \textbf{8~s} (4096 samples). A longer segment gives more 1~s windows for the distribution features described below and a more reliable estimate of band power, while a shorter segment gives more training samples. In a sweep over 3--10~s (Table~\ref{tab:seg_sweep} in Appendix~\ref{app:app02}) the mean accuracy rose from 0.72 at 3~s to about 0.80--0.85 at 8--10~s for the best model; we chose 8~s because it still provides 210 samples per subject. 
+        \item \texttt{SEGMENT\_LENGTH}: \textbf{8~s} (4096 samples). Because the band powers are computed on 1~s windows inside each segment (see Feature Engineering below), the frequency resolution is fixed at 1~Hz (512-point Welch window at 512~Hz) and does not depend on the segment length. This already gives 4 to 10 frequency bins per band, for example 4 for theta and 5 for alpha. A single spectrum over the whole 8~s segment would give 0.125~Hz, which is finer than the band features need and averages short bursts away. The segment length therefore trades the number of 1~s windows per segment (29 at 8~s, which makes the distribution statistics more stable) against the number of training samples. In a sweep over 3--10~s (Table~\ref{tab:seg_sweep} in Appendix~\ref{app:app02}) the mean accuracy rose from 0.72 at 3~s to about 0.80--0.85 at 8--10~s for the best model; we chose 8~s because it still provides 210 samples per subject. 
         \item \texttt{OVERLAP\_RATIO}: \textbf{0.75} (2~s hop). Each 20~s recording yields 7 segments, i.e.\ 70 segments per class and 210 per subject (630 in total). Overlap increases the number of training samples without discarding data, but neighbouring segments are correlated, so they do not add fully independent information.
     \end{itemize}
 
@@ -26,7 +26,6 @@ All processing is implemented inside the marked student blocks of \texttt{main.p
         \item \textbf{60~Hz notch filter} (IIR notch, $Q=30$) to suppress mains interference (60~Hz in Taiwan).
         \item \textbf{Band-pass filter 1--45~Hz} (4th-order Butterworth, applied forward and backward so that the phase is zero) to remove slow drift and to keep the delta to gamma range.
     \end{enumerate}
-    No segment is discarded by an amplitude threshold. The first rounds of B12901069 (\texttt{1\_1}, \texttt{2\_1}, \texttt{2\_2}, \texttt{3\_1}, \texttt{3\_2}) are clearly noisier than the rest of the data, with a raw standard deviation of 53--88 against a median of about 32 over all 90 files and a peak deviation of up to about 1560 in \texttt{3\_1}. We kept these recordings, because every subject must contribute 30 files and the later rounds of the same subject look normal.
 
     \item \textbf{Feature Engineering:} a single Welch spectrum over 8~s averages away short bursts (for example alpha bursts or a keypress artifact). Therefore, inside each segment we slide a 1~s window with a 0.25~s hop, compute 8 features per window, and describe the resulting series by its distribution (mean, standard deviation, 90th percentile and maximum). This gives $8 \times 4 = 32$ features per segment.
     \begin{itemize}
@@ -50,6 +49,8 @@ The hyperparameters of the three given classifiers were determined by \textbf{pa
     \centering
     \caption{Final Hyperparameter Settings of the Four Classifiers (selected by the parameter experiments)}
     \label{tab:hyperparams}
+    \small
+    \setlength{\tabcolsep}{4pt}
     \begin{tabularx}{\textwidth}{@{} l l l X @{}}
         \toprule
         \textbf{Model} & \textbf{Parameter} & \textbf{Final Setting} & \textbf{Justification from the parameter experiments} \\

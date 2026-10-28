@@ -47,27 +47,27 @@ class Config:
     CLASS_NAMES = ['Relax', 'Focus', 'Stroop']
 
     # MLP parameters
-    HIDDEN_LAYERS = (256, 128, 64)  # hhhy
-    MAX_ITER = 150                 # hhhy
-    LEARNING_RATE = 0.0005         # hhhy
-    ALPHA = 0.05                   # hhhy
+    HIDDEN_LAYERS = (256, 128, 64)
+    MAX_ITER = 150
+    LEARNING_RATE = 0.0005
+    ALPHA = 0.05
 
     # SVM parameters
-    SVM_KERNEL = 'rbf'   # hhhy
-    SVM_C = 0.01         # hhhy
+    SVM_KERNEL = 'rbf'
+    SVM_C = 0.01
     # gamma is left at the scikit-learn default ('scale'); the SVC constructor is not edited
 
     # Random Forest parameters
-    RF_ESTIMATORS = 500  # hhhy
-    RF_MAX_DEPTH = 5     # hhhy
+    RF_ESTIMATORS = 500
+    RF_MAX_DEPTH = 5
 
     # Signal processing parameters
     SAMPLING_RATE = 512    # BrainLink fixed sampling rate
-    SEGMENT_LENGTH = 8     # Segment length in seconds      # hhhy
-    OVERLAP_RATIO = 0.75   # Overlap ratio for segments     # hhhy
+    SEGMENT_LENGTH = 8     # Segment length in seconds
+    OVERLAP_RATIO = 0.75   # Overlap ratio for segments
 
     # Preprocessing parameters (student)
-    BANDPASS = (1.0, 45.0)     # Hz, band-pass range   # hhhy
+    BANDPASS = (1.0, 45.0)     # Hz, band-pass range
     NOTCH_FREQ = 60.0          # Hz, mains frequency in Taiwan
 
     # Ablation switches (student): used by ablation.py to build Table 3 of the report.
@@ -87,8 +87,8 @@ class Config:
     }
 
     # Feature selection parameters
-    FEATURE_SELECTION = False  # hhhy
-    N_FEATURES_SELECT = 20     # hhhy
+    FEATURE_SELECTION = False
+    N_FEATURES_SELECT = 20
 
     # Reporting settings
     TARGET_ACCURACY = 0.75   # required level
@@ -314,7 +314,7 @@ class MultiModelBCIClassifier:
             # === STUDENT MODEL HERE ===================
             # ==========================================
             # Shrinkage LDA: linear, few parameters, stable with small samples; a classic EEG/BCI baseline
-            self.model = LinearDiscriminantAnalysis(solver='lsqr', shrinkage='auto')  # hhhy
+            self.model = LinearDiscriminantAnalysis(solver='lsqr', shrinkage='auto')
         else:
             raise ValueError(f"Unknown model type: {model_type}")
 

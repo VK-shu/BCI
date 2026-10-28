@@ -6,13 +6,13 @@ All numbers in this appendix are produced by scripts in the repository, using th
     \item \texttt{ablation.py} $\rightarrow$ \texttt{ablation\_results.txt}: Tables~\ref{tab:ablation} and~\ref{tab:ablation_full}.
     \item \texttt{exp\_mlp.py}, \texttt{exp\_svm.py}, \texttt{exp\_rf.py} and \texttt{exp\_lda.py} in \texttt{exp\_testing/} $\rightarrow$ the matching \texttt{results\_*.txt} files: Tables~\ref{tab:sens_mlp}--\ref{tab:sens_lda} (classifier experiments).
     \item \texttt{exp\_testing/exp\_pipeline.py} $\rightarrow$ \texttt{results\_pipeline.txt}: Tables~\ref{tab:seg_sweep} and~\ref{tab:featsel}.
-    \item Run with \texttt{uv run python <script>} from the project root. The result files record the versions used here (Python 3.13.16, NumPy 2.5.3, scikit-learn 1.9.1); other library versions may change the last digit of some values.
+    \item Run with \texttt{uv run python <script>} from the project root. This uses the course environment defined by \texttt{pyproject.toml} and \texttt{uv.lock} (Python 3.11, NumPy 2.4.3, scikit-learn 1.8.0, SciPy 1.17.1); other library versions may change the last digit of some values.
 \end{itemize}
 In the tables, \textbf{bold} marks the setting used in \texttt{main.py} and $^{\dagger}$ the framework's initial value (\texttt{main\_original.py}). Each cell is the mean LOSO accuracy over the three held-out members, and one parameter is varied at a time while the others stay at their final values, unless the row says otherwise.
 
 \FloatBarrier
 \subsection{Per-subject and Ablation Results}
-\begin{table}[!htb]
+\begin{table}[H]
     \centering
     \caption{Per-subject LOSO accuracy of the four models (final pipeline)}
     \label{tab:per_subject}
@@ -52,7 +52,7 @@ In the tables, \textbf{bold} marks the setting used in \texttt{main.py} and $^{\
 
 \FloatBarrier
 \subsection{Classifier Experiments}
-\begin{table}[!htb]
+\begin{table}[H]
     \centering
     \caption{MLP: sensitivity of the LOSO accuracy to each hyperparameter (\texttt{exp\_mlp.py})}
     \label{tab:sens_mlp}
@@ -204,7 +204,7 @@ In the tables, \textbf{bold} marks the setting used in \texttt{main.py} and $^{\
 
 \FloatBarrier
 \subsection{Pipeline Experiments}
-\begin{table}[!htb]
+\begin{table}[H]
     \centering
     \caption{Effect of the segment length and the overlap ratio on the LOSO accuracy (\texttt{exp\_pipeline.py})}
     \label{tab:seg_sweep}
