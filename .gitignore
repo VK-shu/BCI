@@ -9,6 +9,14 @@ __pycache__/
 # Fake test data (only for testing the pipeline)
 fake_dataset/
 
-# Real recordings contain student IDs; remove this line if you want to publish them
-
-
+# LaTeX build files (the report is compiled on Overleaf)
+report/*.aux
+report/*.bbl
+report/*.blg
+report/*.log
+report/*.out
+report/*.toc
+report/*.fls
+report/*.fdb_latexmk
+report/*.synctex.gz
+report/*.xdv

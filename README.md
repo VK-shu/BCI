@@ -1,5 +1,25 @@
 # 實驗三：腦機介面應用 - 分類器實作
 
+## 0. 第 5 組使用說明
+
+資料放在 `bci_dataset_115-1/學號/`，三個人各 30 個檔（`學號_類別_輪次.txt`，每檔 10240 點）。
+
+```bash
+python check_data.py      # 檢查檔名與每檔長度
+python main.py            # LOSO，輸出 results_summary.txt 和 bci_multi_model_comparison.png
+python ablation.py        # 報告的 ablation 表，輸出 ablation_results.txt
+python exp_testing/exp_svm.py   # 各模型的超參數實驗（另有 exp_mlp / exp_rf / exp_lda / exp_pipeline），結果寫在 exp_testing/results_*.txt
+```
+
+最終的 `main.py`（細節見程式註解與報告第 2 節）：
+
+* 前處理（Part 1）：去 DC、60 Hz notch、1~45 Hz 帶通，8 秒切段、重疊 75%，每個 20 秒錄音 7 段。
+* 特徵（Part 2）：段內每 1 秒算一次相對 theta / alpha / low beta / high beta、log(θ/β)、log(α/β)、log 標準差和 kurtosis，再取整段的平均、標準差、90 百分位和最大值，共 32 個。接著每位受試者用自己全部片段的平均和標準差做 z-score（不使用 label）。
+* 模型：自選模型是 shrinkage LDA。MLP (256, 128, 64)、learning rate 0.0005、alpha 0.05；SVM rbf、C = 0.01；RF 500 棵樹、max_depth 5。超參數由 `exp_testing/` 裡的實驗決定。
+* 後處理：沒有使用，每個 8 秒片段各自判斷。
+
+`report/` 是報告的 LaTeX 原始檔，用 XeLaTeX 編譯。
+
 ## 1. 專案概述
 
 本專案提供一個基於 Python 的機器學習框架，用於分析 EEG 訊號，並將其分類為 **放鬆 (Relax)、專注 (Focus) 與認知衝突 (Stroop)** 三種狀態。
