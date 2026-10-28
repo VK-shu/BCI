@@ -47,19 +47,19 @@ class Config:
     CLASS_NAMES = ['Relax', 'Focus', 'Stroop']
 
     # MLP parameters
-    HIDDEN_LAYERS = (128, 64, 32)  # hhhy
+    HIDDEN_LAYERS = (256, 128, 64)  # hhhy
     MAX_ITER = 150                 # hhhy
-    LEARNING_RATE = 0.0025         # hhhy
-    ALPHA = 0.005                  # hhhy
+    LEARNING_RATE = 0.0005         # hhhy
+    ALPHA = 0.05                   # hhhy
 
     # SVM parameters
     SVM_KERNEL = 'rbf'   # hhhy
-    SVM_C = 0.2          # hhhy
+    SVM_C = 0.01         # hhhy
     # gamma is left at the scikit-learn default ('scale'); the SVC constructor is not edited
 
     # Random Forest parameters
-    RF_ESTIMATORS = 100  # hhhy
-    RF_MAX_DEPTH = None  # hhhy
+    RF_ESTIMATORS = 500  # hhhy
+    RF_MAX_DEPTH = 5     # hhhy
 
     # Signal processing parameters
     SAMPLING_RATE = 512    # BrainLink fixed sampling rate

@@ -1,7 +1,7 @@
 Configuration                      #feat               MLP               SVM                RF      SelfSelected              Best
-1 Raw samples                       4096     0.329+/-0.037     0.486+/-0.027     0.373+/-0.012     0.303+/-0.018         SVM 0.486
-2 + Filtering (raw samples)         4096     0.356+/-0.040     0.516+/-0.060     0.375+/-0.048     0.338+/-0.004         SVM 0.516
-3 + Window band-power features        24     0.514+/-0.082     0.487+/-0.078     0.506+/-0.087     0.571+/-0.068SelfSelected 0.571
-4 + Time-domain features              32     0.668+/-0.051     0.592+/-0.069     0.616+/-0.043     0.667+/-0.037         MLP 0.668
-5 + Subject z-score (final)           32     0.794+/-0.100     0.803+/-0.104     0.760+/-0.138     0.825+/-0.101SelfSelected 0.825
-(extra) band-power + z-score          24     0.743+/-0.136     0.781+/-0.132     0.752+/-0.165     0.803+/-0.121SelfSelected 0.803
+1 Raw samples                       4096     0.305+/-0.025     0.500+/-0.014     0.348+/-0.025     0.303+/-0.018         SVM 0.500
+2 + Filtering (raw samples)         4096     0.308+/-0.020     0.537+/-0.036     0.376+/-0.022     0.338+/-0.004         SVM 0.537
+3 + Window band-power features        24     0.533+/-0.068     0.425+/-0.077     0.508+/-0.075     0.571+/-0.068SelfSelected 0.571
+4 + Time-domain features              32     0.700+/-0.056     0.535+/-0.057     0.641+/-0.076     0.667+/-0.037         MLP 0.700
+5 + Subject z-score (final)           32     0.795+/-0.099     0.811+/-0.097     0.751+/-0.121     0.825+/-0.101SelfSelected 0.825
+(extra) band-power + z-score          24     0.763+/-0.150     0.779+/-0.140     0.765+/-0.165     0.803+/-0.121SelfSelected 0.803

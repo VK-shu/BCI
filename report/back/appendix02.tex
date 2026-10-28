@@ -1,5 +1,16 @@
 \section{Experimental Results}\label{app:app02}
 
+\subsection{Reproducibility}
+All numbers in this appendix are produced by scripts in the repository, using the final features of \texttt{main.py} (which is only imported, never modified or run by them) and Leave-One-Subject-Out validation with the \texttt{StandardScaler} fitted on the training members only, exactly as in \texttt{MultiModelBCIClassifier}. All random elements use \texttt{Config.RANDOM\_STATE} = 42 unless a seed sweep is stated. Every script was run twice from scratch and the two result files were identical line by line.
+\begin{itemize}[leftmargin=*]
+    \item \texttt{ablation.py} $\rightarrow$ \texttt{ablation\_results.txt}: Tables~\ref{tab:ablation} and~\ref{tab:ablation_full}.
+    \item \texttt{exp\_testing/exp\_mlp.py}, \texttt{exp\_svm.py}, \texttt{exp\_rf.py}, \texttt{exp\_lda.py} $\rightarrow$ \texttt{results\_mlp.txt}, \texttt{results\_svm.txt}, \texttt{results\_rf.txt}, \texttt{results\_lda.txt}: Tables~\ref{tab:sens_mlp}--\ref{tab:sens_lda} (classifier experiments).
+    \item \texttt{exp\_testing/exp\_pipeline.py} $\rightarrow$ \texttt{results\_pipeline.txt}: Tables~\ref{tab:seg_sweep} and~\ref{tab:featsel}.
+    \item Run with \texttt{uv run python <script>} from the project root. The result files record the versions used here (Python 3.13.16, NumPy 2.5.3, scikit-learn 1.9.1); other library versions may change the last digit of some values.
+\end{itemize}
+In the tables, \textbf{bold} marks the setting used in \texttt{main.py} and $^{\dagger}$ the framework's initial value (\texttt{main\_original.py}). Each cell is the mean LOSO accuracy over the three held-out members, and one parameter is varied at a time while the others stay at their final values, unless the row says otherwise.
+
+\subsection{Per-subject and Ablation Results}
 \begin{table}[!htb]
     \centering
     \caption{Per-subject LOSO accuracy of the four models (final pipeline)}
@@ -8,73 +19,219 @@
         \toprule
         \textbf{Held-out subject} & \textbf{MLP} & \textbf{SVM} & \textbf{RF} & \textbf{Shrinkage LDA} \\
         \midrule
-        B12901057 & 0.681 & 0.686 & 0.595 & 0.705 \\
-        B12901059 & 0.924 & 0.938 & 0.933 & 0.952 \\
-        B12901069 & 0.776 & 0.786 & 0.752 & 0.819 \\
+        B12901057 & 0.676 & 0.729 & 0.624 & 0.705 \\
+        B12901059 & 0.919 & 0.948 & 0.914 & 0.952 \\
+        B12901069 & 0.790 & 0.757 & 0.714 & 0.819 \\
         \midrule
-        Mean $\pm$ std & 0.794 $\pm$ 0.100 & 0.803 $\pm$ 0.104 & 0.760 $\pm$ 0.138 & 0.825 $\pm$ 0.101 \\
+        Mean $\pm$ std & 0.795 $\pm$ 0.099 & 0.811 $\pm$ 0.097 & 0.751 $\pm$ 0.121 & 0.825 $\pm$ 0.101 \\
         \bottomrule
     \end{tabularx}
 \end{table}
 
 \begin{table}[!htb]
     \centering
-    \caption{Ablation study: mean LOSO accuracy $\pm$ std of every model for each configuration}
+    \caption{Ablation study: mean LOSO accuracy $\pm$ std of every model for each configuration (\texttt{ablation.py}; each row adds one step to the row above, the subject-wise z-score is off until row 5)}
     \label{tab:ablation_full}
+    \small
     \begin{tabularx}{\textwidth}{@{} l r X X X X @{}}
         \toprule
         \textbf{Configuration} & \textbf{\#feat.} & \textbf{MLP} & \textbf{SVM} & \textbf{RF} & \textbf{LDA} \\
         \midrule
-        Raw samples & 4096 & 0.329 $\pm$ 0.037 & 0.486 $\pm$ 0.027 & 0.373 $\pm$ 0.012 & 0.303 $\pm$ 0.018 \\
-        + Filtering (raw samples) & 4096 & 0.356 $\pm$ 0.040 & 0.516 $\pm$ 0.060 & 0.375 $\pm$ 0.048 & 0.338 $\pm$ 0.004 \\
-        + Window band-power features & 24 & 0.514 $\pm$ 0.082 & 0.487 $\pm$ 0.078 & 0.506 $\pm$ 0.087 & 0.571 $\pm$ 0.068 \\
-        + Time-domain features & 32 & 0.668 $\pm$ 0.051 & 0.592 $\pm$ 0.069 & 0.616 $\pm$ 0.043 & 0.667 $\pm$ 0.037 \\
-        + Subject-wise z-score (final) & 32 & 0.794 $\pm$ 0.100 & 0.803 $\pm$ 0.104 & 0.760 $\pm$ 0.138 & 0.825 $\pm$ 0.101 \\
+        Raw samples & 4096 & 0.305 $\pm$ 0.025 & 0.500 $\pm$ 0.014 & 0.348 $\pm$ 0.025 & 0.303 $\pm$ 0.018 \\
+        2 + Filtering (raw samples) & 4096 & 0.308 $\pm$ 0.020 & 0.537 $\pm$ 0.036 & 0.376 $\pm$ 0.022 & 0.338 $\pm$ 0.004 \\
+        3 + Window band-power features & 24 & 0.533 $\pm$ 0.068 & 0.425 $\pm$ 0.077 & 0.508 $\pm$ 0.075 & 0.571 $\pm$ 0.068 \\
+        4 + Time-domain features & 32 & 0.700 $\pm$ 0.056 & 0.535 $\pm$ 0.057 & 0.641 $\pm$ 0.076 & 0.667 $\pm$ 0.037 \\
+        5 + Subject-wise z-score (final) & 32 & 0.795 $\pm$ 0.099 & 0.811 $\pm$ 0.097 & 0.751 $\pm$ 0.121 & 0.825 $\pm$ 0.101 \\
+        \midrule
+        Extra: band-power features + z-score (no time-domain features) & 24 & 0.763 $\pm$ 0.150 & 0.779 $\pm$ 0.140 & 0.765 $\pm$ 0.165 & 0.803 $\pm$ 0.121 \\
         \bottomrule
     \end{tabularx}
 \end{table}
 
+\subsection{Classifier Experiments}
 \begin{table}[!htb]
     \centering
-    \caption{Sensitivity of the LOSO accuracy to the hyperparameters (one parameter varied at a time while the others stay at their final setting)}
-    \label{tab:sens}
+    \caption{MLP: sensitivity of the LOSO accuracy to each hyperparameter (\texttt{exp\_mlp.py})}
+    \label{tab:sens_mlp}
+    \small
     \begin{tabularx}{\textwidth}{@{} l l X @{}}
         \toprule
         \textbf{Model} & \textbf{Parameter} & \textbf{Tested values: mean accuracy} \\
         \midrule
-        MLP & hidden layers & (32): 0.779; (64, 32): 0.790; (128, 64, 32): 0.794; (256, 128, 64): 0.783 \\
-        MLP & learning rate & 0.0005: 0.784; 0.001: 0.783; 0.0025: 0.794; 0.01: 0.795 \\
-        MLP & alpha (L2) & 0.0001: 0.773; 0.005: 0.794; 0.05: 0.787; 0.5: 0.800 \\
-        MLP & max iterations & 50, 150, 300: 0.794 in all three cases \\
-        SVM & kernel & linear: 0.768; rbf: 0.803; poly: 0.729 \\
-        SVM & C & 0.1: 0.803; 0.2: 0.803 (final); 0.5: 0.797; 1.0: 0.781; 2.0: 0.762; 10: 0.738 \\
-        RF & n\_estimators & 50: 0.737; 100: 0.760; 300: 0.756 \\
-        RF & max\_depth & 3: 0.759; 6: 0.752; 10: 0.756; None: 0.760 \\
+        MLP & hidden layers & (16,): 0.794; (32,): 0.741; (64,): 0.762; (128,): 0.781; (256,): 0.787; (32, 16): 0.757; (64, 32): 0.770; (128, 64): 0.795; (128, 64, 32): 0.784$^{\dagger}$; \textbf{(256, 128, 64): 0.795}; (64, 64, 64): 0.778; (256, 128, 64, 32): 0.798 \\
+         & learning rate & 0.0001: 0.784; \textbf{0.0005: 0.795}; 0.001: 0.789; 0.002: 0.775$^{\dagger}$; 0.0025: 0.779; 0.005: 0.798; 0.01: 0.778; 0.02: 0.730; 0.05: 0.759 \\
+         & alpha (L2) & 0.0: 0.797; 1e-05: 0.798; 0.0001: 0.797; 0.001: 0.800; 0.005: 0.800$^{\dagger}$; 0.01: 0.800; \textbf{0.05: 0.795}; 0.1: 0.795; 0.5: 0.794; 1.0: 0.792; 5.0: 0.778 \\
+         & max iterations & 10: 0.795; 25: 0.795; 50: 0.795; 100: 0.795; \textbf{150: 0.795$^{\dagger}$}; 300: 0.795; 500: 0.795; 1000: 0.795 \\
         \midrule
-        \multicolumn{3}{@{}l}{\textbf{Feature selection} (\texttt{SelectKBest}, best of the four models in parentheses)} \\
-        All & $k=8$ & MLP 0.714, SVM 0.767, RF 0.719, LDA 0.783 \\
-        All & $k=15$ & MLP 0.743, SVM 0.773, RF 0.733, LDA 0.810 \\
-        All & $k=20$ & MLP 0.757, SVM 0.792, RF 0.737, LDA 0.811 \\
-        All & no selection (32) & MLP 0.794, SVM 0.803, RF 0.760, LDA 0.825 \\
+         & activation$^{*}$ & \textbf{relu: 0.795}; tanh: 0.806; logistic: 0.768; identity: 0.779 \\
+         & batch size$^{*}$ & 8: 0.779; 16: 0.797; \textbf{32: 0.795}; 64: 0.797; 128: 0.767; 256: 0.768 \\
+         & solver$^{*}$ & \textbf{adam: 0.795}; sgd: 0.765; lbfgs: 0.771 \\
+         & early stopping$^{*}$ & \textbf{True: 0.795}; False: 0.789 \\
+        \midrule
+        & random seed 0--9 & 0: 0.800; 1: 0.790; 2: 0.808; 3: 0.783; 4: 0.798; 5: 0.794; 6: 0.794; 7: 0.779; 8: 0.781; 9: 0.800; \textbf{mean 0.793 $\pm$ 0.009} (the setting in \texttt{main.py} uses seed 42: 0.795) \\
+        \bottomrule
+    \end{tabularx}
+    \par\smallskip\footnotesize $^{*}$ not a \texttt{Config} setting; varied here for completion.
+\end{table}
+
+\begin{table}[!htb]
+    \centering
+    \caption{MLP: ten best settings of the joint grid hidden layers $\times$ learning rate $\times$ alpha (125 settings, mean over seeds 0, 1, 2, \texttt{max\_iter} = 150), and the setting used in \texttt{main.py}}
+    \label{tab:grid_mlp}
+    \small
+    \begin{tabularx}{\textwidth}{@{} r X r @{}}
+        \toprule
+        \textbf{Rank} & \textbf{Hidden layers / learning rate / alpha} & \textbf{Mean accuracy} \\
+        \midrule
+        1 & (256, 128, 64) / lr=0.0005 / alpha=0.05 & 0.799 \\
+        2 & (256, 128, 64) / lr=0.0025 / alpha=0.005 & 0.798 \\
+        3 & (128, 64) / lr=0.0005 / alpha=0.5 & 0.797 \\
+        4 & (128, 64) / lr=0.001 / alpha=0.5 & 0.797 \\
+        5 & (256, 128, 64) / lr=0.0005 / alpha=0.005 & 0.796 \\
+        6 & (256, 128, 64) / lr=0.0005 / alpha=0.5 & 0.796 \\
+        7 & (256, 128, 64) / lr=0.001 / alpha=2.0 & 0.796 \\
+        8 & (128, 64) / lr=0.0005 / alpha=0.0001 & 0.795 \\
+        9 & (128, 64) / lr=0.0005 / alpha=0.005 & 0.795 \\
+        10 & (128, 64) / lr=0.001 / alpha=0.0001 & 0.795 \\
+        \midrule
+        --- & \textbf{(256, 128, 64) / lr=0.0005 / alpha=0.05} (\texttt{main.py}) & 0.799 \\
         \bottomrule
     \end{tabularx}
 \end{table}
 
 \begin{table}[!htb]
     \centering
-    \caption{Effect of the segment length and the overlap ratio on the LOSO accuracy}
+    \caption{SVM: sensitivity of the LOSO accuracy to each hyperparameter (\texttt{exp\_svm.py})}
+    \label{tab:sens_svm}
+    \small
+    \begin{tabularx}{\textwidth}{@{} l l X @{}}
+        \toprule
+        \textbf{Model} & \textbf{Parameter} & \textbf{Tested values: mean accuracy} \\
+        \midrule
+        SVM & kernel & linear: 0.800; \textbf{rbf: 0.811$^{\dagger}$}; poly: 0.510; sigmoid: 0.783 \\
+         & C (rbf kernel) & 0.001: 0.811; \textbf{0.01: 0.811}; 0.05: 0.811; 0.1: 0.803; 0.2: 0.803; 0.3: 0.800; 0.5: 0.797; 0.75: 0.789; 1.0: 0.781$^{\dagger}$; 2.0: 0.762; 5.0: 0.751; 10.0: 0.738; 50.0: 0.748; 100.0: 0.748; 1000.0: 0.748 \\
+         & gamma (rbf kernel) & \textbf{scale: 0.811}; auto: 0.811; 0.0003: 0.771; 0.001: 0.773; 0.003: 0.792; 0.01: 0.794; 0.03: 0.813; 0.1: 0.751; 0.3: 0.468; 1.0: 0.335 \\
+         & C (linear kernel) & 0.0001: 0.770; 0.001: 0.808; 0.01: 0.800; 0.1: 0.779; 1.0: 0.767; 10.0: 0.748 \\
+         & degree (poly kernel) & 2: 0.467; 3: 0.510; 4: 0.349; 5: 0.386 \\
+         & class weight & \textbf{None: 0.811}; balanced: 0.811 \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\begin{table}[!htb]
+    \centering
+    \caption{SVM: joint grid kernel $\times$ C (mean LOSO accuracy)}
+    \label{tab:grid_svm}
+    \small
+    \begin{tabularx}{\textwidth}{@{} l X X X X X X X X X X X X @{}}
+        \toprule
+        \textbf{Kernel} & \textbf{0.005} & \textbf{0.01} & \textbf{0.02} & \textbf{0.05} & \textbf{0.1} & \textbf{0.2} & \textbf{0.3} & \textbf{0.5} & \textbf{1.0} & \textbf{2.0} & \textbf{5.0} & \textbf{10.0} \\
+        \midrule
+        rbf & 0.811 & \textbf{0.811} & 0.811 & 0.811 & 0.803 & 0.803 & 0.800 & 0.797 & 0.781$^{\dagger}$ & 0.762 & 0.751 & 0.738 \\
+        linear & 0.790 & 0.800 & 0.794 & 0.790 & 0.779 & 0.768 & 0.768 & 0.762 & 0.767 & 0.767 & 0.759 & 0.748 \\
+        sigmoid & 0.783 & 0.783 & 0.794 & 0.808 & 0.808 & 0.795 & 0.806 & 0.798 & 0.776 & 0.719 & 0.702 & 0.697 \\
+        poly & 0.400 & 0.510 & 0.506 & 0.635 & 0.698 & 0.729 & 0.735 & 0.749 & 0.760 & 0.756 & 0.756 & 0.746 \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\begin{table}[!htb]
+    \centering
+    \caption{Random Forest: sensitivity of the LOSO accuracy to each hyperparameter (\texttt{exp\_rf.py})}
+    \label{tab:sens_rf}
+    \small
+    \begin{tabularx}{\textwidth}{@{} l l X @{}}
+        \toprule
+        \textbf{Model} & \textbf{Parameter} & \textbf{Tested values: mean accuracy} \\
+        \midrule
+        RF & n\_estimators & 5: 0.673; 10: 0.702; 25: 0.741; 50: 0.729; 100: 0.748$^{\dagger}$; 200: 0.748; 300: 0.759; \textbf{500: 0.751}; 1000: 0.752 \\
+         & max\_depth & 1: 0.690; 2: 0.754; 3: 0.763; 4: 0.759; \textbf{5: 0.751}; 6: 0.748; 8: 0.751; 10: 0.756; 15: 0.757; 20: 0.757; None: 0.757$^{\dagger}$ \\
+        \midrule
+         & min\_samples\_leaf$^{*}$ & \textbf{1: 0.751}; 2: 0.748; 3: 0.751; 5: 0.751; 10: 0.762; 20: 0.762; 40: 0.749 \\
+         & min\_samples\_split$^{*}$ & \textbf{2: 0.751}; 5: 0.752; 10: 0.746; 20: 0.737; 50: 0.741 \\
+         & max\_features$^{*}$ & \textbf{sqrt: 0.751}; log2: 0.751; 0.1: 0.773; 0.25: 0.735; 0.5: 0.711; 0.75: 0.697; None: 0.687 \\
+         & criterion$^{*}$ & \textbf{gini: 0.751}; entropy: 0.757; log\_loss: 0.757 \\
+         & bootstrap / max\_samples$^{*}$ & \textbf{bootstrap=True: 0.751}; bootstrap=False: 0.754; max\_samples=0.3: 0.756; max\_samples=0.5: 0.757; max\_samples=0.8: 0.746 \\
+         & class\_weight$^{*}$ & \textbf{None: 0.751}; balanced: 0.751; balanced\_subsample: 0.751 \\
+        \midrule
+        & random seed 0--9 & 0: 0.763; 1: 0.749; 2: 0.767; 3: 0.762; 4: 0.760; 5: 0.744; 6: 0.754; 7: 0.762; 8: 0.759; 9: 0.759; \textbf{mean 0.758 $\pm$ 0.006} (seed 42 in \texttt{main.py}: 0.751) \\
+        \bottomrule
+    \end{tabularx}
+    \par\smallskip\footnotesize $^{*}$ not a \texttt{Config} setting; varied here for completion.
+\end{table}
+
+\begin{table}[!htb]
+    \centering
+    \caption{Random Forest: joint grid n\_estimators $\times$ max\_depth (mean LOSO accuracy over seeds 0--4)}
+    \label{tab:grid_rf}
+    \small
+    \begin{tabularx}{\textwidth}{@{} l X X X X X X X @{}}
+        \toprule
+        \textbf{n\_estimators} & \textbf{3} & \textbf{4} & \textbf{5} & \textbf{6} & \textbf{8} & \textbf{10} & \textbf{None} \\
+        \midrule
+        50 & 0.750 & 0.749 & 0.753 & 0.740 & 0.741 & 0.739 & 0.737 \\
+        100 & 0.756 & 0.755 & 0.757 & 0.747 & 0.743 & 0.742 & 0.744$^{\dagger}$ \\
+        300 & 0.757 & 0.755 & 0.751 & 0.752 & 0.745 & 0.747 & 0.745 \\
+        500 & 0.757 & 0.758 & \textbf{0.760} & 0.754 & 0.750 & 0.748 & 0.749 \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\begin{table}[!htb]
+    \centering
+    \caption{Self-selected model (shrinkage LDA): settings and alternative candidate classifiers (\texttt{exp\_lda.py})}
+    \label{tab:sens_lda}
+    \small
+    \begin{tabularx}{\textwidth}{@{} l l X @{}}
+        \toprule
+        \textbf{Model} & \textbf{Parameter} & \textbf{Tested values: mean accuracy} \\
+        \midrule
+        LDA & solver, shrinkage & svd: 0.813; lsqr, none: 0.813; \textbf{lsqr, auto: 0.825}; eigen, none: 0.813; eigen, auto: 0.825 \\
+         & manual shrinkage & 0.0: 0.813; 0.01: 0.816; 0.05: 0.827; 0.1: 0.822; 0.2: 0.817; 0.3: 0.816; 0.4: 0.816; 0.5: 0.814; 0.6: 0.811; 0.7: 0.803; 0.8: 0.795; 0.9: 0.790; 1.0: 0.787 \\
+        & class priors & priors=None (from data): 0.825; priors=uniform (1/3 each): 0.825 \\
+        \midrule
+        QDA & reg\_param & 0.0: 0.622; 0.1: 0.746; 0.3: 0.765; 0.5: 0.786; 0.7: 0.784; 0.9: 0.786; 1.0: 0.787 \\
+        Logistic regr. & C & 0.001: 0.787; 0.01: 0.800; 0.1: 0.805; 1.0: 0.802; 10.0: 0.779; 100.0: 0.746 \\
+        k-NN & n\_neighbors & 1: 0.735; 3: 0.759; 5: 0.775; 9: 0.800; 15: 0.806; 25: 0.806; 41: 0.798; 61: 0.798; 15 (distance-weighted): 0.808 \\
+        Others &  & GaussianNB: 0.757; RidgeClassifier alpha=1.0: 0.824; RidgeClassifier alpha=100.0: 0.825; RidgeClassifier alpha=1000.0: 0.816; LinearSVC C=0.001: 0.817; LinearSVC C=0.01: 0.819; LinearSVC C=0.1: 0.819; ExtraTrees (300 trees): 0.783; GradientBoosting (100, depth 3): 0.729 \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\subsection{Pipeline Experiments}
+\begin{table}[!htb]
+    \centering
+    \caption{Effect of the segment length and the overlap ratio on the LOSO accuracy (\texttt{exp\_pipeline.py})}
     \label{tab:seg_sweep}
     \begin{tabularx}{\textwidth}{@{} r r r X X X X @{}}
         \toprule
         \textbf{Length (s)} & \textbf{Overlap} & \textbf{Samples/subject} & \textbf{MLP} & \textbf{SVM} & \textbf{RF} & \textbf{LDA} \\
         \midrule
-        3  & 0.50 & 360 & 0.715 & 0.741 & 0.704 & 0.719 \\
-        5  & 0.50 & 210 & 0.754 & 0.792 & 0.743 & 0.795 \\
-        5  & 0.75 & 390 & 0.743 & 0.778 & 0.738 & 0.782 \\
-        8  & 0.50 & 120 & 0.761 & 0.797 & 0.725 & 0.806 \\
-        \textbf{8}  & \textbf{0.75} & \textbf{210} & \textbf{0.794} & \textbf{0.803} & \textbf{0.760} & \textbf{0.825} \\
-        10 & 0.50 & 90  & 0.785 & 0.822 & 0.767 & 0.852 \\
-        10 & 0.75 & 150 & 0.791 & 0.804 & 0.753 & 0.836 \\
+        3 & 0.50 & 360 & 0.689 & 0.742 & 0.715 & 0.719 \\
+        5 & 0.50 & 210 & 0.751 & 0.783 & 0.763 & 0.795 \\
+        5 & 0.75 & 390 & 0.756 & 0.782 & 0.758 & 0.782 \\
+        8 & 0.50 & 120 & 0.781 & 0.811 & 0.744 & 0.806 \\
+        \textbf{8} & \textbf{0.75} & \textbf{210} & \textbf{0.795} & \textbf{0.811} & \textbf{0.751} & \textbf{0.825} \\
+        10 & 0.50 & 90 & 0.781 & 0.804 & 0.774 & 0.852 \\
+        10 & 0.75 & 150 & 0.807 & 0.807 & 0.749 & 0.836 \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\begin{table}[!htb]
+    \centering
+    \caption{Feature selection (\texttt{SelectKBest}, $k$ of the 32 features kept; $k=32$ is the final setting without selection)}
+    \label{tab:featsel}
+    \begin{tabularx}{\textwidth}{@{} r X X X X @{}}
+        \toprule
+        \textbf{$k$} & \textbf{MLP} & \textbf{SVM} & \textbf{RF} & \textbf{LDA} \\
+        \midrule
+        8 & 0.762 & 0.765 & 0.721 & 0.783 \\
+        12 & 0.762 & 0.778 & 0.714 & 0.786 \\
+        15 & 0.771 & 0.789 & 0.733 & 0.810 \\
+        20 & 0.763 & 0.798 & 0.738 & 0.811 \\
+        25 & 0.783 & 0.806 & 0.759 & 0.806 \\
+        \textbf{32} & \textbf{0.795} & \textbf{0.811} & \textbf{0.751} & \textbf{0.825} \\
         \bottomrule
     \end{tabularx}
 \end{table}

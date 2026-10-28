@@ -36,34 +36,37 @@ All processing is implemented inside the marked student blocks of \texttt{main.p
         \item \textbf{Feature Selection:}
         \begin{itemize}
             \item \texttt{FEATURE\_SELECTION}: \textbf{False}.
-            \item \texttt{N\_FEATURES\_SELECT}: not used (left at 20). With only 32 features, enabling feature selection with $k=8$, 15 or 20 lowered the best accuracy from 0.825 to 0.783, 0.810 and 0.811, respectively (Table~\ref{tab:sens} in Appendix~\ref{app:app02}), so all 32 features are kept.
+            \item \texttt{N\_FEATURES\_SELECT}: not used (left at 20). With only 32 features, enabling feature selection with $k=8$, 15 or 20 lowered the best accuracy from 0.825 to 0.783, 0.810 and 0.811, respectively (Table~\ref{tab:featsel} in Appendix~\ref{app:app02}), so all 32 features are kept.
         \end{itemize}
     \end{itemize}
 \end{itemize}
 
-\subsection{Classifiers and Hyperparameter Tuning}
-This experiment requires implementing and comparing at least four classifiers: \texttt{MLPClassifier}, \texttt{SVC}, \texttt{RandomForestClassifier}, and one self-selected model. As the fourth classifier we chose \textbf{shrinkage Linear Discriminant Analysis} (LDA, \texttt{solver='lsqr'}, \texttt{shrinkage='auto'}). It is a linear model with few parameters, and the automatic (Ledoit--Wolf) shrinkage regularizes the covariance estimate, which suits a small training set (420 samples, 32 features per LOSO fold). LDA is also a common baseline in EEG BCIs. The table below lists the final settings used in this report. Starting from the framework's initial values, we varied one hyperparameter at a time around the final setting and compared the LOSO accuracy (Table~\ref{tab:sens} in Appendix~\ref{app:app02}). The three non-linear models were largely insensitive: the MLP stayed within 0.77--0.80, the Random Forest within 0.75--0.76 once it had at least 100 trees, and the SVM was the most sensitive, since a larger \texttt{C} overfitted (0.738 at $C=10$) while smaller values were better (0.781 at the default $C=1$, 0.803 at $C=0.1$ and $C=0.2$). We therefore lowered \texttt{C} from 1.0 to 0.2. Note that this value was chosen on the same three subjects that are used for the evaluation, so the SVM accuracy is slightly optimistic. 
+\subsection{Classifiers and Hyperparameter Experiments}
+This experiment requires implementing and comparing at least four classifiers: \texttt{MLPClassifier}, \texttt{SVC}, \texttt{RandomForestClassifier}, and one self-selected model. As the fourth classifier we chose \textbf{shrinkage Linear Discriminant Analysis} (LDA, \texttt{solver='lsqr'}, \texttt{shrinkage='auto'}). It is a linear model with few parameters, and the automatic (Ledoit--Wolf) shrinkage regularizes the covariance estimate, which suits a small training set (420 samples, 32 features per LOSO fold). LDA is also a common baseline in EEG BCIs. Besides LDA, we compared QDA, logistic regression, $k$-NN, naive Bayes, ridge and linear SVM, gradient boosting and extra trees under the same protocol (Table~\ref{tab:sens_lda}); none was clearly better than LDA.
+
+The hyperparameters of the three given classifiers were determined by \textbf{parameter experiments} rather than by hand. For each classifier a script in \texttt{exp\_testing/} first varies one parameter at a time around the final setting, starting from the framework's initial values (\texttt{main\_original.py}), and then evaluates a joint grid of the parameters that mattered most: hidden layers $\times$ learning rate $\times$ alpha for the MLP (125 settings), kernel $\times$ $C$ for the SVM (48 settings) and number of trees $\times$ maximum depth for the Random Forest (28 settings). Every setting is scored by the mean LOSO accuracy, and the setting with the highest score is used in \texttt{main.py}. Because the MLP and the Random Forest depend on the random seed, their joint grids average 3 and 5 seeds, respectively, so that the choice is not decided by a lucky seed. All results are listed in Tables~\ref{tab:sens_mlp}--\ref{tab:grid_rf} in Appendix~\ref{app:app02}. The experiments show that the three models are not very sensitive to most parameters: 39 of the 125 MLP settings are within one percentage point of the best one (0.799), the Random Forest stays within 0.74--0.76, and the number of MLP training iterations has no effect because early stopping ends the training first. The SVM is the exception: a large \texttt{C} over-fits (0.738 at $C=10$), and $C$ between 0.001 and 0.05 gives the best accuracy (0.811). The settings were selected on the same three subjects that are used for the evaluation, so the resulting accuracies are slightly optimistic. The final settings are listed below.
 
 \begin{table}[!htb]
     \centering
-    \caption{Final Hyperparameter Settings of the Four Classifiers}
+    \caption{Final Hyperparameter Settings of the Four Classifiers (selected by the parameter experiments)}
     \label{tab:hyperparams}
     \begin{tabularx}{\textwidth}{@{} l l l X @{}}
         \toprule
-        \textbf{Model} & \textbf{Parameter} & \textbf{Final Setting} & \textbf{Justification for this Setting} \\
+        \textbf{Model} & \textbf{Parameter} & \textbf{Final Setting} & \textbf{Justification from the parameter experiments} \\
         \midrule
-        \multirow{3}{*}{MLP} & \texttt{HIDDEN\_LAYER\_SIZES} & (128, 64, 32) & Funnel-shaped network for 32 inputs; one to three layers gave 0.779--0.794, so the size is not critical. \\
-                             & \texttt{LEARNING\_RATE\_INIT} & 0.0025 & Adam step size; values from 0.0005 to 0.01 gave 0.783--0.795. \\
-                             & \texttt{ALPHA} (L2) & 0.005 & Mild weight decay against over-fitting the small sample (0.0001 gave 0.773, 0.005 gave 0.794). \\
+        \multirow{4}{*}{MLP} & \texttt{HIDDEN\_LAYER\_SIZES} & (256, 128, 64) & Best of the joint grid (0.799, mean of 3 seeds). One layer gave 0.741--0.794 and two to four layers 0.757--0.798 in the one-at-a-time sweep, so the depth is not critical. \\
+                             & \texttt{LEARNING\_RATE\_INIT} & 0.0005 & Part of the best joint setting; the one-at-a-time sweep from 0.0001 to 0.01 gave 0.775--0.798 (framework initial value: 0.002). \\
+                             & \texttt{ALPHA} (L2) & 0.05 & Part of the best joint setting; the L2 strength from 0 to 0.5 changed the accuracy by less than 0.01. \\
+                             & \texttt{MAX\_ITER} & 150 & 10 to 1000 iterations gave the same accuracy (early stopping), so the initial value is kept. \\
         \midrule
-        \multirow{3}{*}{SVM} & \texttt{kernel} & rbf & Better than linear (0.768) and polynomial (0.729) kernels. \\
-                             & \texttt{C} & 0.2 & Stronger regularization is better on this small, noisy set: 0.781 at $C=1$ (default), 0.797 at 0.5, 0.803 at 0.2 and 0.1, and over-fitting at larger values (0.762 at $C=2$, 0.738 at $C=10$). \\
-                             & \texttt{gamma} & \texttt{'scale'} (default) & Not tuned: scikit-learn's default $1/(n_{features}\cdot \mathrm{Var}(X))$ adapts to the standardized features. \\
+        \multirow{3}{*}{SVM} & \texttt{kernel} & rbf & Best kernel: 0.811, versus 0.800 (linear), 0.783 (sigmoid) and 0.510 (polynomial). \\
+                             & \texttt{C} & 0.01 & Accuracy is flat (0.811) for $C$ from 0.001 to 0.05, so we took the middle of this range; it falls to 0.781 at the initial value $C=1$ and 0.738 at $C=10$. \\
+                             & \texttt{gamma} & \texttt{'scale'} (default) & Not tuned: the default adapts to the standardized features, and $\gamma$ between 0.003 and 0.03 gave 0.792--0.813. \\
         \midrule
-        \multirow{2}{*}{RF}  & \texttt{n\_estimators} & 100 & 50 trees gave 0.737, 100 gave 0.760 and 300 gave 0.756, so accuracy saturates at about 100 trees. \\
-                             & \texttt{max\_depth} & None & Depths 3, 6, 10 and unlimited gave 0.752--0.760, so the depth has little effect. \\
+        \multirow{2}{*}{RF}  & \texttt{n\_estimators} & 500 & Best of the joint grid (0.760, mean of 5 seeds); the accuracy rises slowly with the number of trees (0.737 at 50 and 0.749 at 500 for unlimited depth). \\
+                             & \texttt{max\_depth} & 5 & Shallow trees (depth 3--5) gave 0.749--0.760 for 50--500 trees, better than unlimited depth (0.737--0.749), presumably because they over-fit less on 420 samples. \\
         \midrule
-        Shrinkage LDA & \texttt{solver}, \texttt{shrinkage} & \texttt{'lsqr'}, \texttt{'auto'} & Ledoit--Wolf shrinkage chooses the regularization automatically from the data, so no manual tuning is needed. \\
+        Shrinkage LDA & \texttt{solver}, \texttt{shrinkage} & \texttt{'lsqr'}, \texttt{'auto'} & Ledoit--Wolf shrinkage chooses the regularization from the data. A hand-picked value of 0.05 gave 0.827 versus 0.825, a difference that is within the noise, so we kept the automatic choice. \\
         \bottomrule
     \end{tabularx}
 \end{table}
@@ -79,13 +82,13 @@ This experiment requires implementing and comparing at least four classifiers: \
         \toprule
         \textbf{Method} & \textbf{MLP} & \textbf{SVM} & \textbf{RF} & \textbf{LDA} \\
         \midrule
-        None (\texttt{predict}, submitted) & 0.794 & 0.803 & 0.760 & 0.825 \\
-        Arg-max of the class probabilities (reference for the rows below) & 0.794 & 0.795 & 0.760 & 0.825 \\
-        Equal class share (re-weight the probabilities so each class gets about 1/3) & 0.794 & 0.800 & 0.770 & 0.813 \\
-        $k$NN smoothing ($k=10$, average the probabilities of the nearest test segments in feature space) & 0.802 & 0.813 & 0.783 & 0.833 \\
-        Label propagation on the $k$NN graph ($k=10$) & 0.829 & 0.811 & 0.771 & 0.832 \\
-        Label propagation + equal class share & 0.817 & 0.824 & 0.794 & 0.856 \\
-        Moving average over 9 neighbouring rows (\emph{not valid}, see text) & 0.844 & 0.840 & 0.792 & 0.875 \\
+        None (\texttt{predict}, submitted) & 0.795 & 0.811 & 0.751 & 0.825 \\
+        Arg-max of the class probabilities (reference for the rows below) & 0.795 & 0.803 & 0.751 & 0.825 \\
+        Equal class share (re-weight the probabilities so each class gets about 1/3) & 0.798 & 0.781 & 0.754 & 0.813 \\
+        $k$NN smoothing ($k=10$, average the probabilities of the nearest test segments in feature space) & 0.802 & 0.817 & 0.770 & 0.833 \\
+        Label propagation on the $k$NN graph ($k=10$) & 0.811 & 0.817 & 0.763 & 0.832 \\
+        Label propagation + equal class share & 0.824 & 0.819 & 0.781 & 0.856 \\
+        Moving average over 9 neighbouring rows (\emph{not valid}, see text) & 0.837 & 0.843 & 0.784 & 0.875 \\
         \bottomrule
     \end{tabularx}
 \end{table}
@@ -93,7 +96,7 @@ This experiment requires implementing and comparing at least four classifiers: \
 \begin{itemize}[leftmargin=*]
     \item \textbf{Smoothing over neighbouring rows / majority voting per 20~s recording:} not used. These give the highest numbers, but \texttt{predict} receives the test matrix ordered by class, so averaging neighbouring rows uses the order of the labels. When we shuffled the rows of the test member, the accuracy of LDA with a 5-row moving average dropped from 0.825 to 0.451. We regard these results as a leak and do not report them as an improvement.
     \item \textbf{$k$NN smoothing, label propagation and equal class share:} order-independent by construction (for $k$NN smoothing we verified that shuffling the rows gives identical results), and they raised the accuracy of some models by 1--3 points. However, the gain is small and inconsistent across models and folds (for example, label propagation lowered LDA on B12901069 from 0.819 to 0.805), they use the unlabeled test data of the held-out member (as our z-score does), and only three folds are available to judge them. Since the best model already exceeds 80\% without them, we kept the simpler, unprocessed prediction.
-    \item \textbf{Probability thresholds and clustering of the test segments:} not used. Rejecting low-confidence segments still requires a label, and clustering the test segments (cluster-wise voting, a Gaussian mixture initialized from the predictions) was unstable: the Gaussian mixture raised the MLP, SVM and RF by about 4--6 points but lowered LDA to 0.790, with B12901069 falling to 0.595.
+    \item \textbf{Probability thresholds and clustering of the test segments:} not used. Rejecting low-confidence segments still requires a label, and clustering the test segments (cluster-wise voting, a Gaussian mixture initialized from the predictions) was unstable: the Gaussian mixture raised the MLP, SVM and RF by about 2--7 points but lowered LDA to 0.790, with B12901069 falling to 0.595.
 \end{itemize}
 
 \subsection{Performance Evaluation Method}

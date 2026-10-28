@@ -1,8 +1,8 @@
 ==================================================
 Summary of Classification Results (LOSO):
- - MLP         : 0.794 +/- 0.100
- - SVM         : 0.803 +/- 0.104
- - RF          : 0.760 +/- 0.138
+ - MLP         : 0.795 +/- 0.099
+ - SVM         : 0.811 +/- 0.097
+ - RF          : 0.751 +/- 0.121
  - SelfSelected: 0.825 +/- 0.101
 
 Best Performing Model: SelfSelected with Accuracy 0.825
@@ -10,9 +10,9 @@ Best Performing Model: SelfSelected with Accuracy 0.825
 
 Accuracy per held-out subject:
 Subject                    MLP           SVM            RF  SelfSelected
-b12901057                0.681         0.686         0.595         0.705
-b12901059                0.924         0.938         0.933         0.952
-b12901069                0.776         0.786         0.752         0.819
+b12901057                0.676         0.729         0.624         0.705
+b12901059                0.919         0.948         0.914         0.952
+b12901069                0.790         0.757         0.714         0.819
 
 Detailed Class Report for Best Model [SelfSelected]:
 [Relax Class]
