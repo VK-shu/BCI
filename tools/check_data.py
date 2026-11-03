@@ -1,6 +1,6 @@
 """Check the collected data: 30 files per subject, 10240 lines per file, correct file names.
 
-Usage:  python check_data.py [dataset folder, default bci_dataset_115-1]
+Usage (from the project root):  uv run python tools/check_data.py [dataset folder, default bci_dataset_115-1]
 """
 import os, re, sys
 import numpy as np

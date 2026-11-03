@@ -12,18 +12,26 @@ row really is "raw samples, no filtering, no normalization".
     row 5  + subject-wise z-score               (= final pipeline of main.py)
     extra  band-power features + z-score, without time-domain features
 
-Usage:  uv run python ablation.py        (writes ablation_results.txt)
+Usage (from the project root):   uv run python exp_testing/ablation.py   (writes exp_testing/results_ablation.txt)
 """
 import contextlib
 import io
+import os
+import sys
 import warnings
 
 import numpy as np
 
-import main
-from main import Config
+# Run from the project root so that main.py and the dataset folder are found.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+os.chdir(ROOT)
+import main                      # noqa: E402  (imports only; main.py is not modified or run)
+from main import Config          # noqa: E402
 
 warnings.filterwarnings("ignore")
+HERE = os.path.dirname(os.path.abspath(__file__))
+OUT = os.path.join(HERE, "results_ablation.txt")
 
 # (name, USE_FILTERING, USE_FREQ_FEATURES, USE_TIME_FEATURES, SUBJECT_ZSCORE)
 CONFIGS = [
@@ -66,9 +74,9 @@ def main_ablation():
             print(row, flush=True)
     finally:
         Config.USE_FILTERING, Config.USE_FREQ_FEATURES, Config.USE_TIME_FEATURES, Config.SUBJECT_ZSCORE = saved
-    with open("ablation_results.txt", "w", encoding="utf-8") as fh:
+    with open(OUT, "w", encoding="utf-8") as fh:
         fh.write("\n".join(lines) + "\n")
-    print("\nSaved to ablation_results.txt")
+    print(f"\nSaved to {os.path.relpath(OUT, ROOT)}")
 
 
 if __name__ == "__main__":

@@ -15,33 +15,38 @@
 
 ## 檔案結構
 
+繳交的三樣東西（`115_1_g5_exp3.pdf`、`main.py`、`bci_dataset_115-1/`）放在根目錄，其餘是重現結果用的腳本和報告原始檔。
+
 ```
 .
-├── main.py                        # 繳交的程式，只修改了指定的 STUDENT 區塊和 Config
-├── main_original.py               # 助教提供的原始框架，報告用它對照初始超參數
-├── bci_dataset_115-1/             # 三位組員各 30 個檔案，共 90 個（學號_類別_輪次.txt）
-├── check_data.py                  # 檢查檔名和每個檔案的長度（10240 點）
+├── 115_1_g5_exp3.pdf              # 報告（繳交）
+├── main.py                        # 程式（繳交），只修改了指定的 STUDENT 區塊和 Config
+├── bci_dataset_115-1/             # 原始資料（繳交），三位組員各 30 個檔案（學號_類別_輪次.txt）
 ├── results_summary.txt            # main.py 的文字輸出
 ├── bci_multi_model_comparison.png # main.py 的結果圖
-├── ablation.py                    # 報告 Table 4 和 Table 7 的 ablation study
-├── ablation_results.txt           # ablation.py 的輸出
-├── exp_testing/                   # 超參數和 pipeline 實驗：exp_*.py 及其輸出 results_*.txt
+├── exp_testing/
+│   ├── ablation.py                # 報告 Table 4 和 Table 7 的 ablation study
+│   ├── exp_*.py                   # 超參數和 pipeline 實驗（MLP、SVM、RF、LDA、pipeline）
+│   └── results_*.txt              # 上面各腳本的輸出（results_ablation.txt 等）
+├── tools/
+│   ├── check_data.py              # 檢查檔名和每個檔案的長度（10240 點）
+│   └── main_original.py           # 助教提供的原始框架，報告用它對照初始超參數
 ├── report/                        # 報告的 LaTeX 原始檔（XeLaTeX）
-├── pyproject.toml, uv.lock        # uv 環境
+├── pyproject.toml, uv.lock, .python-version   # uv 環境
 └── README.md
 ```
 
 ## 執行方式
 
 ```bash
-uv sync                                # 建立環境（Python 3.11）
-uv run python check_data.py            # 檢查資料
-uv run python main.py                  # LOSO，輸出 results_summary.txt 和 bci_multi_model_comparison.png
-uv run python ablation.py              # 輸出 ablation_results.txt
-uv run python exp_testing/exp_svm.py   # 另有 exp_mlp / exp_rf / exp_lda / exp_pipeline
+uv sync                                  # 建立環境（Python 3.11）
+uv run python tools/check_data.py        # 檢查資料
+uv run python main.py                    # LOSO，輸出 results_summary.txt 和 bci_multi_model_comparison.png
+uv run python exp_testing/ablation.py    # 輸出 exp_testing/results_ablation.txt（約 20 分鐘）
+uv run python exp_testing/exp_svm.py     # 另有 exp_mlp / exp_rf / exp_lda / exp_pipeline
 ```
 
-所有腳本都要從專案根目錄執行。`ablation.py` 和 `exp_testing/` 只 import `main.py` 的函式，不會修改或執行它。
+所有指令都從專案根目錄執行。`exp_testing/` 裡的腳本只 import `main.py` 的函式，不會修改或執行它。
 
 ## 最終的 main.py
 
@@ -60,11 +65,11 @@ uv run python exp_testing/exp_svm.py   # 另有 exp_mlp / exp_rf / exp_lda / exp
 cd report && latexmk -xelatex main.tex
 ```
 
-也可以把 `report/` 整個上傳到 Overleaf（編譯器選 XeLaTeX）。編譯產生的 PDF 和暫存檔不放進 git。
+也可以把 `report/` 整個上傳到 Overleaf（編譯器選 XeLaTeX）。編譯產生的 `report/main.pdf` 和暫存檔不放進 git，繳交用的報告是根目錄的 `115_1_g5_exp3.pdf`。
 
 ## 課程原始說明
 
-以下是助教提供的原始 README，保留作為參考。其中描述的初始狀態（例如 `extract_features()` 直接回傳原始訊號、四個模型使用預設超參數）指的是 `main_original.py`，不是目前的 `main.py`。
+以下是助教提供的原始 README，保留作為參考。其中描述的初始狀態（例如 `extract_features()` 直接回傳原始訊號、四個模型使用預設超參數）指的是 `tools/main_original.py`，不是目前的 `main.py`。
 
 ### 1. 專案概述
 

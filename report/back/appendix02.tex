@@ -3,7 +3,7 @@
 \subsection{Reproducibility}
 All numbers in this appendix are produced by scripts in the repository, using the final features of \texttt{main.py} (which is only imported, never modified or run by them) and Leave-One-Subject-Out validation with the \texttt{StandardScaler} fitted on the training members only, exactly as in \texttt{MultiModelBCIClassifier}. All random elements use \texttt{Config.RANDOM\_STATE} = 42 unless a seed sweep is stated. Every script was run twice from scratch and the two result files were identical line by line.
 \begin{itemize}[leftmargin=*]
-    \item \texttt{ablation.py} $\rightarrow$ \texttt{ablation\_results.txt}: Tables~\ref{tab:ablation} and~\ref{tab:ablation_full}.
+    \item \texttt{exp\_testing/ablation.py} $\rightarrow$ \texttt{results\_ablation.txt}: Tables~\ref{tab:ablation} and~\ref{tab:ablation_full}.
     \item \texttt{exp\_mlp.py}, \texttt{exp\_svm.py}, \texttt{exp\_rf.py} and \texttt{exp\_lda.py} in \texttt{exp\_testing/} $\rightarrow$ the matching \texttt{results\_*.txt} files: Tables~\ref{tab:sens_mlp}--\ref{tab:sens_lda} (classifier experiments).
     \item \texttt{exp\_testing/exp\_pipeline.py} $\rightarrow$ \texttt{results\_pipeline.txt}: Tables~\ref{tab:seg_sweep} and~\ref{tab:featsel}.
     \item Run with \texttt{uv run python <script>} from the project root. This uses the course environment defined by \texttt{pyproject.toml} and \texttt{uv.lock} (Python 3.11, NumPy 2.4.3, scikit-learn 1.8.0, SciPy 1.17.1); other library versions may change the last digit of some values.
